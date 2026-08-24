@@ -14,21 +14,25 @@ const RULES: Array<[string, string]> = [
 
 export default function RulesPage() {
   return (
-    <article className="mx-auto max-w-3xl py-10">
-      <h1 className="text-3xl font-extrabold">Board Rules</h1>
-      <p className="mt-2 text-xs text-neutral-500">
-        How deterministic paid placement works on MarkOnTop.
-      </p>
-      <ol className="mt-8 space-y-5">
-        {RULES.map(([title, body], i) => (
-          <li key={title} className="panel p-4">
-            <h2 className="text-sm font-bold gold-text">
-              {i + 1}. {title}
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-neutral-300">{body}</p>
-          </li>
-        ))}
-      </ol>
-    </article>
+    <div className="-mx-4 -mb-20 bg-paper px-4 py-10 text-ink sm:-mx-6 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-[640px]">
+        <h1 className="font-display text-[32px] font-black tracking-[-0.02em] text-ink sm:text-[40px]">Board Rules</h1>
+        <p className="mt-2 font-data text-xs tracking-wide text-ink/40">How deterministic paid placement works.</p>
+
+        <ol className="mt-8 divide-y divide-ink/10 border-y border-ink/10">
+          {RULES.map(([title, body], i) => (
+            <li key={title} className="flex gap-4 py-5 sm:gap-5">
+              <span className="shrink-0 font-data text-xs font-bold tabular-nums text-ink/25">{String(i + 1).padStart(2, "0")}</span>
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold tracking-tight text-ink">{title}</h2>
+                <p className="mt-1 text-sm leading-relaxed text-ink/60">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <p className="mt-6 text-center font-data text-[11px] tracking-wide text-ink/25">No lottery. No chance. Highest paid holds rank.</p>
+      </div>
+    </div>
   );
 }

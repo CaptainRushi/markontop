@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, TrendingUp, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import type { Listing } from "@/lib/types";
 
 interface Props {
@@ -10,14 +10,12 @@ interface Props {
   onClose: () => void;
 }
 
-/** 1-click bid-up modal — re-uses checkout; server charges only the difference. */
 export default function BidUpModal({ listing, onClose }: Props) {
   const router = useRouter();
   const [bidTarget, setBidTarget] = useState((Number(listing.current_bid) + 1).toFixed(2));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const min = Number(listing.current_bid) + 0.01;
   const delta = Math.max(0, parseFloat(bidTarget || "0") - Number(listing.current_bid));
 
   async function go() {
@@ -52,45 +50,47 @@ export default function BidUpModal({ listing, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Raise your placement"
       onClick={onClose}
     >
-      <div className="panel w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 font-bold">
-            <TrendingUp className="h-4 w-4 text-[var(--gold)]" /> Raise placement
-          </h2>
-          <button onClick={onClose} aria-label="Close" className="text-neutral-500 hover:text-white">
+      <div className="w-full max-w-sm bg-paper p-6 text-ink" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-base font-black tracking-tight text-ink">Raise your bid</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1 text-ink/40 hover:text-ink">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="mb-1 text-xs text-neutral-400">{listing.title}</p>
-        <p className="mb-4 text-xs text-neutral-500">
-          Current: <strong className="gold-text">${Number(listing.current_bid).toFixed(2)}</strong> · you pay the difference only
+        <p className="text-xs leading-relaxed text-ink/60">
+          {listing.title}
+          <br />
+          Current — <span className="font-data font-bold text-ink">${Number(listing.current_bid).toFixed(2)}</span> · you pay the difference only
         </p>
 
-        <label htmlFor="new-total" className="mb-1 block text-sm">
-          New total ($)
+        <label htmlFor="new-total" className="mt-4 mb-1 block text-xs font-medium tracking-wide text-ink/60">
+          Your bid
         </label>
-        <input
-          id="new-total"
-          type="number"
-          step="0.01"
-          min={min}
-          value={bidTarget}
-          onChange={(e) => setBidTarget(e.target.value)}
-          className="w-full rounded-lg border border-[var(--border)] bg-black/30 px-3 py-2 text-sm outline-none focus:border-[var(--gold)]"
-        />
-        <p className="mt-1 text-xs text-neutral-500">
-          You will be charged: <strong className="gold-text">${delta.toFixed(2)}</strong>
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-data text-sm text-ink/30">$</span>
+          <input
+            id="new-total"
+            type="number"
+            step="0.01"
+            min={Number(listing.current_bid) + 0.01}
+            value={bidTarget}
+            onChange={(e) => setBidTarget(e.target.value)}
+            className="w-full border border-ink/15 bg-white py-2 pl-7 pr-3 font-data text-base font-bold tabular-nums text-ink focus:border-gold focus:outline-none"
+          />
+        </div>
+        <p className="mt-1.5 font-data text-xs tabular-nums text-ink/40">
+          You will be charged <span className="font-bold text-ink">${delta.toFixed(2)}</span>
         </p>
 
         {error && (
-          <p role="alert" className="mt-3 rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+          <p role="alert" className="mt-3 border-l-2 border-auction-red bg-auction-red/10 px-3 py-2 text-xs leading-relaxed text-auction-red">
             {error}
           </p>
         )}
@@ -98,10 +98,10 @@ export default function BidUpModal({ listing, onClose }: Props) {
         <button
           onClick={() => void go()}
           disabled={busy}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--gold)] py-2.5 text-sm font-bold text-black hover:brightness-110 disabled:opacity-50"
+          className="mt-5 flex w-full items-center justify-center gap-2 bg-ink px-4 py-3 text-sm font-bold tracking-wide text-paper hover:bg-ink-soft disabled:opacity-40"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-          Pay ${delta.toFixed(2)} & update placement
+          Pay ${delta.toFixed(2)} & update
         </button>
       </div>
     </div>

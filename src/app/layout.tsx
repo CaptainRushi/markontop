@@ -1,7 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trophy, Rocket } from "lucide-react";
+import { Fraunces, JetBrains_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["900"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-general",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "MarkOnTop — Deterministic Paid Placement",
@@ -11,41 +32,53 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${jetbrains.variable} ${dmSans.variable}`}>
       <body className="min-h-screen antialiased">
-        <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/85 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Trophy className="h-5 w-5 text-[var(--gold)]" aria-hidden />
-              Mark<span className="gold-text">OnTop</span>
+        {/* ── Header: paper-on-ink, hairline ── */}
+        <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-ink/90 backdrop-blur-md">
+          <div className="mx-auto flex max-w-[1100px] items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+            <Link
+              href="/"
+              className="font-display text-[17px] font-black tracking-[-0.03em] text-paper transition-opacity hover:opacity-80 sm:text-[20px]"
+            >
+              MARK<span className="text-gold">ONTOP</span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm sm:gap-4">
-              <Link href="/my-rank" className="rounded-md px-3 py-1.5 text-neutral-300 hover:text-white">
+
+            <nav className="flex items-center gap-1 sm:gap-2">
+              <Link
+                href="/my-rank"
+                className="px-3 py-1.5 text-[13px] font-medium tracking-wide text-paper/60 transition-colors hover:text-paper"
+              >
                 My Rank
               </Link>
-              <Link href="/rules" className="hidden rounded-md px-3 py-1.5 text-neutral-300 hover:text-white sm:block">
+              <Link
+                href="/rules"
+                className="hidden px-3 py-1.5 text-[13px] font-medium tracking-wide text-paper/60 transition-colors hover:text-paper sm:inline-block"
+              >
                 Rules
               </Link>
               <Link
                 href="/submit"
-                className="flex items-center gap-1.5 rounded-md bg-[var(--gold)] px-3 py-1.5 font-semibold text-black hover:brightness-110"
+                className="ml-1 bg-gold px-4 py-1.5 text-[13px] font-bold tracking-wide text-ink transition-colors hover:bg-[#d4b06e] sm:px-5 sm:py-2"
               >
-                <Rocket className="h-4 w-4" aria-hidden />
-                Get on the board
+                Take your spot
               </Link>
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-24">{children}</main>
-        <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-neutral-500">
-          <p>
-            MarkOnTop is a deterministic paid-placement advertising service. Placement is purchased, not won.
-            No refunds.{" "}
-            <Link href="/terms" className="underline hover:text-neutral-300">
+
+        <main className="mx-auto max-w-[1100px] px-4 pb-20 sm:px-6">{children}</main>
+
+        {/* ── Footer — quiet, hairline ── */}
+        <footer className="border-t border-white/[0.06] py-8 text-center">
+          <p className="mx-auto max-w-xl text-[11px] leading-relaxed tracking-wide text-paper/30">
+            MarkOnTop is a deterministic paid-placement advertising service. Placement is purchased,
+            not won. No refunds.{" "}
+            <Link href="/terms" className="underline decoration-white/20 underline-offset-2 hover:text-paper/60">
               Terms
             </Link>{" "}
             ·{" "}
-            <Link href="/rules" className="underline hover:text-neutral-300">
+            <Link href="/rules" className="underline decoration-white/20 underline-offset-2 hover:text-paper/60">
               Rules
             </Link>
           </p>

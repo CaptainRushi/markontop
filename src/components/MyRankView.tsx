@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Crown, Loader2, MailCheck, TrendingUp } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getRank } from "@/lib/ranking";
 import { categoryById } from "@/lib/categories";
@@ -23,6 +23,7 @@ export default function MyRankView() {
   const [rows, setRows] = useState<RankedRow[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [modalListing, setModalListing] = useState<Listing | null>(null);
+  const [outbidNotice, setOutbidNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -38,15 +39,10 @@ export default function MyRankView() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load own listings + compute exact deterministic ranks per scope.
   const loadMine = useCallback(async (emailLower: string) => {
     setLoadingList(true);
     const supabase = getSupabaseBrowserClient();
-    const { data: mine } = await supabase
-      .from("listings")
-      .select("*")
-      .eq("owner_email", emailLower)
-      .order("current_bid", { ascending: false });
+    const { data: mine } = await supabase.from("listings").select("*").eq("owner_email", emailLower).order("current_bid", { ascending: false });
 
     if (!mine) {
       setLoadingList(false);
@@ -58,11 +54,7 @@ export default function MyRankView() {
 
     await Promise.all(
       categoryIds.map(async (cid) => {
-        const { data: board } = await supabase
-          .from("listings")
-          .select("id, current_bid, created_at")
-          .eq("category_id", cid)
-          .eq("is_active", true);
+        const { data: board } = await supabase.from("listings").select("id, current_bid, created_at").eq("category_id", cid).eq("is_active", true);
         if (board) scoped[cid] = board;
       })
     );
@@ -74,16 +66,12 @@ export default function MyRankView() {
           ...m,
           rank: m.is_active ? getRank(m, board) : null,
           scopeSize: board.length,
-          gapToNext:
-            board
+          gapToNext: (() => {
+            const above = board
               .filter((b) => Number(b.current_bid) > Number(m.current_bid))
-              .sort((a, b) => Number(a.current_bid) - Number(b.current_bid))[0] !== undefined
-              ? Number(
-                  board
-                    .filter((b) => Number(b.current_bid) > Number(m.current_bid))
-                    .sort((a, b) => Number(a.current_bid) - Number(b.current_bid))[0].current_bid
-                ) - Number(m.current_bid)
-              : null,
+              .sort((a, b) => Number(a.current_bid) - Number(b.current_bid))[0];
+            return above ? Number(above.current_bid) - Number(m.current_bid) : null;
+          })(),
         };
       })
     );
@@ -106,7 +94,7 @@ export default function MyRankView() {
 
   if (authLoading) {
     return (
-      <div className="flex justify-center py-20 text-neutral-500">
+      <div className="flex justify-center py-20 text-paper/20">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -114,22 +102,19 @@ export default function MyRankView() {
 
   if (!user) {
     return (
-      <div className="panel mx-auto max-w-md p-6">
+      <div className="mx-auto max-w-[420px] bg-paper px-6 py-8 text-ink sm:px-8">
         {otpSent ? (
-          <div className="py-8 text-center">
-            <MailCheck className="mx-auto mb-3 h-8 w-8 text-[var(--gold)]" />
-            <h2 className="font-bold">Check your inbox</h2>
-            <p className="mt-2 text-sm text-neutral-400">
-              We sent a sign-in link to <strong>{email}</strong>. Click it to view your ranks.
+          <div className="py-6 text-center">
+            <p className="font-display text-lg font-black text-ink">Check your inbox</p>
+            <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink/50">
+              We sent a sign-in link to <span className="font-medium text-ink">{email}</span>.
             </p>
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-bold">Sign in to see your rank</h2>
-            <p className="mt-1 text-sm text-neutral-400">
-              We&apos;ll email you a one-time magic link. No passwords.
-            </p>
-            <form onSubmit={(e) => void sendMagicLink(e)} className="mt-4 space-y-3">
+            <h2 className="font-display text-lg font-black tracking-tight text-ink">Sign in to see your rank</h2>
+            <p className="mt-1 text-sm leading-relaxed text-ink/50">We&apos;ll email you a one-time magic link. No passwords.</p>
+            <form onSubmit={(e) => void sendMagicLink(e)} className="mt-5 space-y-3">
               <input
                 type="email"
                 required
@@ -137,12 +122,9 @@ export default function MyRankView() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 aria-label="Email address"
-                className="w-full rounded-lg border border-[var(--border)] bg-black/30 px-3 py-2 text-sm outline-none focus:border-[var(--gold)]"
+                className="w-full border border-ink/15 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-gold focus:outline-none"
               />
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-[var(--gold)] py-2.5 text-sm font-bold text-black hover:brightness-110"
-              >
+              <button type="submit" className="w-full bg-ink px-4 py-2.5 text-sm font-bold tracking-wide text-paper hover:bg-ink-soft">
                 Email me a sign-in link
               </button>
             </form>
@@ -154,67 +136,100 @@ export default function MyRankView() {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-neutral-400">
-            Signed in as <strong className="text-white">{user.email}</strong>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+          <p className="font-data text-xs tracking-wide text-paper/30">
+            Signed in as <span className="font-medium text-paper/60">{user.email}</span>
           </p>
           <button
             onClick={() => void getSupabaseBrowserClient().auth.signOut()}
-            className="text-xs text-neutral-500 underline hover:text-white"
+            className="font-data text-xs tracking-wide text-paper/30 underline decoration-white/15 underline-offset-2 hover:text-paper/60"
           >
             Sign out
           </button>
         </div>
 
+        {outbidNotice && (
+          <div className="border-l-2 border-auction-red bg-auction-red/10 px-4 py-3">
+            <p className="text-xs font-bold text-auction-red">You&apos;ve been outbid.</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-ink/60">{outbidNotice}</p>
+          </div>
+        )}
+
         {loadingList ? (
-          <div className="flex justify-center py-16 text-neutral-500">
+          <div className="flex justify-center py-16 text-paper/20">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : rows.length === 0 ? (
-          <div className="panel p-10 text-center text-sm text-neutral-400">
-            No placements found for this email yet.{" "}
-            <a href="/submit" className="gold-text underline">
-              Place your first listing →
+          <div className="border border-white/[0.06] bg-ink px-6 py-10 text-center">
+            <p className="font-data text-xs tracking-wide text-paper/30">No placements for this email yet.</p>
+            <a href="/submit" className="mt-3 inline-block bg-gold px-5 py-2 text-xs font-bold tracking-wide text-ink hover:bg-[#d4b06e]">
+              Take your spot
             </a>
           </div>
         ) : (
-          rows.map((r) => (
-            <div key={r.id} className="panel flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={r.banner_url} alt="" className="h-16 w-32 shrink-0 rounded object-cover" />
-              <div className="min-w-0 flex-1">
-                <h3 className="flex items-center gap-2 font-bold">
-                  {r.title}
-                  {r.rank === 1 && <Crown className="h-4 w-4 text-[var(--gold)]" />}
-                </h3>
-                <p className="text-xs text-neutral-500">
-                  {categoryById(r.category_id)?.name} · since{" "}
-                  {new Date(r.created_at).toLocaleDateString()}
-                </p>
-                <p className="mt-1 text-sm">
-                  <span className="font-mono font-bold gold-text">${Number(r.current_bid).toFixed(2)}</span>
-                  {r.rank !== null && (
-                    <span className="ml-3 text-neutral-400">
-                      Rank #{r.rank} of {r.scopeSize}
-                      {r.rank > 3 && r.gapToNext !== null && (
-                        <> · ${(r.gapToNext + 0.01).toFixed(2)} more to climb</>
-                      )}
-                    </span>
-                  )}
-                  {!r.is_active && <span className="ml-2 text-red-400">(inactive)</span>}
-                </p>
-              </div>
-              {r.is_active && (
-                <button
-                  onClick={() => setModalListing(r)}
-                  className="flex items-center justify-center gap-2 self-stretch rounded-lg border border-[var(--gold)] px-4 py-2 text-sm font-semibold text-[var(--gold)] hover:bg-[var(--gold)] hover:text-black sm:self-auto"
-                >
-                  <TrendingUp className="h-4 w-4" /> Raise bid
-                </button>
-              )}
+          <div className="divide-y divide-white/[0.06] border border-white/[0.06]">
+            {/* Ledger header */}
+            <div className="flex items-center gap-4 bg-white/[0.02] px-4 py-2 sm:px-5">
+              <span className="w-10 shrink-0 font-data text-[10px] font-medium uppercase tracking-[0.12em] text-paper/25">Rank</span>
+              <span className="flex-1 font-data text-[10px] font-medium uppercase tracking-[0.12em] text-paper/25">Listing</span>
+              <span className="w-20 shrink-0 text-right font-data text-[10px] font-medium uppercase tracking-[0.12em] text-paper/25">Bid</span>
+              <span className="hidden w-28 shrink-0 sm:block" />
             </div>
-          ))
+
+            {rows.map((r) => (
+              <div key={r.id} className="flex items-center gap-4 px-4 py-3 sm:px-5 sm:py-4">
+                <span className="w-10 shrink-0 font-data text-sm font-bold tabular-nums text-paper/60">
+                  {r.rank !== null ? `#${r.rank}` : "—"}
+                </span>
+
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.banner_url} alt="" className="hidden h-8 w-14 shrink-0 object-cover sm:block" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-paper">{r.title}</p>
+                    <p className="truncate font-data text-[11px] tracking-wide text-paper/30">
+                      {categoryById(r.category_id)?.name ?? "—"} · {r.target_url}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="w-20 shrink-0 text-right font-data text-sm font-bold tabular-nums text-paper">
+                  ${Number(r.current_bid).toFixed(2)}
+                </span>
+
+                <div className="hidden w-28 shrink-0 justify-end sm:flex">
+                  {r.is_active ? (
+                    <button
+                      onClick={() => setModalListing(r)}
+                      className="border border-gold px-3 py-1.5 font-data text-xs font-bold tracking-wide text-gold transition-colors hover:bg-gold hover:text-ink"
+                    >
+                      Raise bid
+                    </button>
+                  ) : (
+                    <span className="font-data text-xs text-auction-red">Inactive</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Mobile raise buttons */}
+        {rows.length > 0 && (
+          <div className="flex flex-col gap-2 sm:hidden">
+            {rows
+              .filter((r) => r.is_active)
+              .map((r) => (
+                <button
+                  key={`m-${r.id}`}
+                  onClick={() => setModalListing(r)}
+                  className="w-full border border-gold py-2.5 font-data text-xs font-bold tracking-wide text-gold"
+                >
+                  Raise — {r.title}
+                </button>
+              ))}
+          </div>
         )}
       </div>
 

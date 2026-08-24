@@ -1,32 +1,100 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #09090f;
-  --panel: #12121c;
-  --border: #232336;
-  --gold: #f5b83d;
-  --ink: #eceaf4;
+@theme {
+  --color-ink: #16130f;
+  --color-paper: #f6f3ec;
+  --color-gold: #c6a15b;
+  --color-silver: #ada79b;
+  --color-bronze: #a5714a;
+  --color-ledger: #3f6b4f;
+  --color-auction-red: #9c3b2e;
+  --color-ink-soft: #2a2520;
+  --color-ink-muted: #6b6560;
+  --color-paper-dim: #ede8db;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-body: var(--font-general), "General Sans", Switzer, system-ui, sans-serif;
+  --font-data: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+/* ——— Base ——— */
+html {
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(245, 184, 61, 0.07), transparent),
-    var(--bg);
-  color: var(--ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
+/* ——— Focus ——— */
+*:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-.gold-text {
-  color: var(--gold);
+/* ——— Selection ——— */
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
 }
 
-input,
-select,
-textarea {
-  color-scheme: dark;
+/* ——— Scrollbar ——— */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-soft);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ——— Utilities ——— */
+.font-display {
+  font-family: var(--font-display);
+}
+.font-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" 1,
+    "ss02" 1;
+}
+
+/* Hairline — 0.5px on retina, 1px fallback */
+.hairline-b {
+  border-bottom: 1px solid rgba(246, 243, 236, 0.08);
+}
+.hairline-t {
+  border-top: 1px solid rgba(246, 243, 236, 0.08);
+}
+.hairline-y {
+  border-top: 1px solid rgba(246, 243, 236, 0.08);
+  border-bottom: 1px solid rgba(246, 243, 236, 0.08);
+}
+
+/* Paper surface */
+.surface-paper {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
