@@ -5,16 +5,23 @@ import BidTicker from "@/components/BidTicker";
 export default function HomePage() {
   return (
     <div>
-      {/* Ticker — full-bleed, sits under header */}
       <div className="-mx-4 sm:-mx-6">
         <BidTicker />
       </div>
 
-      <div className="pt-6 sm:pt-8">
+      <div className="pt-5 sm:pt-7">
+        <p className="flex items-center gap-2 font-data text-[10px] font-bold uppercase tracking-[0.16em] text-flag sm:text-[11px]">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse bg-flag" aria-hidden />
+          LIVE - GLOBAL TOP 3
+        </p>
+      </div>
+
+      <div className="mt-3">
+        <RealtimeBoard />
+      </div>
+
+      <div className="mt-6 border-t border-white/[0.06] pt-4">
         <CategoryPillNav />
-        <div className="mt-4 sm:mt-6">
-          <RealtimeBoard />
-        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   getRank,
   computeChargeAmount,
   minimumBidTarget,
+  previewRank,
 } from "@/lib/ranking";
 import { isValidNormalizedUrl, normalizeUrl } from "@/lib/url";
 import { CATEGORIES, ENTRY_FLOOR } from "@/lib/categories";
@@ -39,6 +40,29 @@ describe("deterministic ranking (Rule 5 — tie-breaking)", () => {
     expect(getRank({ id: "b", current_bid: 7, created_at: iso(5) }, board)).toBe(2);
     expect(getRank({ id: "c", current_bid: 7, created_at: iso(9) }, board)).toBe(3);
     expect(getRank({ id: "d", current_bid: 3, created_at: iso(0) }, board)).toBe(4);
+  });
+});
+
+describe("previewRank (live 'lands at #N' helper)", () => {
+  const board = [
+    { id: "a", current_bid: 10, created_at: iso(0) },
+    { id: "b", current_bid: 7, created_at: iso(5) },
+    { id: "d", current_bid: 3, created_at: iso(0) },
+  ];
+
+  it("counts all bids >= target ahead of the new bid", () => {
+    expect(previewRank(8, board)).toBe(2); // beats d only... no: beats b? 10>=8 yes, 7>=8 no → #2
+    expect(previewRank(11, board)).toBe(1); // takes #1
+    expect(previewRank(3, board)).toBe(4); // equal to existing loses to all
+  });
+
+  it("excludeId omits own listing on upgrade", () => {
+    expect(previewRank(11, board, "a")).toBe(1); // own top listing excluded
+    expect(previewRank(12, board)).toBe(1);
+  });
+
+  it("empty board => #1", () => {
+    expect(previewRank(1, [])).toBe(1);
   });
 });
 

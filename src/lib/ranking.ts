@@ -80,6 +80,24 @@ export function computeChargeAmount(opts: {
   return round2(bidTarget);
 }
 
+/**
+ * Rank a hypothetical bid at `bidTarget` would land at (1-based) among `board`.
+ * Equal bids lose to every earlier listing, so all existing bids >= target count ahead.
+ * `excludeId` omits your own listing (upgrade path).
+ */
+export function previewRank(
+  bidTarget: number,
+  board: Array<Rankable & { id?: string }>,
+  excludeId?: string
+): number {
+  let rank = 1;
+  for (const l of board) {
+    if (excludeId && l.id === excludeId) continue;
+    if (l.current_bid >= bidTarget) rank++;
+  }
+  return rank;
+}
+
 /** Minimum acceptable TOTAL bid target shown live in the UI. */
 export function minimumBidTarget(existing?: { owner_email: string; current_bid: number } | null, email?: string): number {
   if (!existing) return 1.0;

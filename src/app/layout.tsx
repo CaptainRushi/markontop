@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fraunces, JetBrains_Mono, DM_Sans } from "next/font/google";
+import { Oswald, JetBrains_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const oswald = Oswald({
   subsets: ["latin"],
-  weight: ["900"],
-  variable: "--font-fraunces",
+  weight: ["500", "600", "700"],
+  variable: "--font-oswald",
   display: "swap",
 });
 
@@ -32,14 +32,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${jetbrains.variable} ${dmSans.variable}`}>
+    <html lang="en" className={`${oswald.variable} ${jetbrains.variable} ${dmSans.variable}`}>
       <body className="min-h-screen antialiased">
-        {/* ── Header: paper-on-ink, hairline ── */}
-        <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-ink/90 backdrop-blur-md">
-          <div className="mx-auto flex max-w-[1100px] items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        {/* Header — F1 broadcast: tight, high-contrast, hairline */}
+        <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-track/90 backdrop-blur-md">
+          <div className="mx-auto flex max-w-[1160px] items-center justify-between px-4 py-3 sm:px-6">
             <Link
               href="/"
-              className="font-display text-[17px] font-black tracking-[-0.03em] text-paper transition-opacity hover:opacity-80 sm:text-[20px]"
+              className="font-display text-[18px] font-black tracking-[-0.02em] text-paper sm:text-[20px]"
+              style={{ fontStretch: "condensed" }}
             >
               MARK<span className="text-gold">ONTOP</span>
             </Link>
@@ -59,26 +60,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
               <Link
                 href="/submit"
-                className="ml-1 bg-gold px-4 py-1.5 text-[13px] font-bold tracking-wide text-ink transition-colors hover:bg-[#d4b06e] sm:px-5 sm:py-2"
+                className="ml-1 bg-gold px-4 py-1.5 text-[12px] font-black tracking-[0.06em] text-track transition-colors hover:bg-[#ffd24d] sm:px-5 sm:text-[13px]"
               >
-                Take your spot
+                TAKE A SPOT
               </Link>
             </nav>
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1100px] px-4 pb-20 sm:px-6">{children}</main>
+        <main className="mx-auto max-w-[1160px] px-4 pb-20 sm:px-6">{children}</main>
 
-        {/* ── Footer — quiet, hairline ── */}
-        <footer className="border-t border-white/[0.06] py-8 text-center">
-          <p className="mx-auto max-w-xl text-[11px] leading-relaxed tracking-wide text-paper/30">
-            MarkOnTop is a deterministic paid-placement advertising service. Placement is purchased,
-            not won. No refunds.{" "}
-            <Link href="/terms" className="underline decoration-white/20 underline-offset-2 hover:text-paper/60">
+        {/* Footer — minimal */}
+        <footer className="border-t border-white/[0.05] py-8 text-center">
+          <p className="mx-auto max-w-xl text-[11px] leading-relaxed tracking-wide text-paper/25">
+            MarkOnTop is a deterministic paid-placement advertising service. Placement is purchased, not won.
+            No refunds.{" "}
+            <Link href="/terms" className="underline decoration-white/15 underline-offset-2 hover:text-paper/50">
               Terms
             </Link>{" "}
             ·{" "}
-            <Link href="/rules" className="underline decoration-white/20 underline-offset-2 hover:text-paper/60">
+            <Link href="/rules" className="underline decoration-white/15 underline-offset-2 hover:text-paper/50">
               Rules
             </Link>
           </p>

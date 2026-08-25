@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 import type { Listing } from "@/lib/types";
+import { previewRank } from "@/lib/ranking";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface Props {
   listing: Listing;
@@ -15,12 +17,25 @@ export default function BidUpModal({ listing, onClose }: Props) {
   const [bidTarget, setBidTarget] = useState((Number(listing.current_bid) + 1).toFixed(2));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // ponytail: full category board — small boards in v1
+  const [board, setBoard] = useState<Array<{ id: string; current_bid: number; created_at: string }>>([]);
 
-  const delta = Math.max(0, parseFloat(bidTarget || "0") - Number(listing.current_bid));
+  useEffect(() => {
+    if (!listing.category_id) return;
+    void getSupabaseBrowserClient()
+      .from("listings")
+      .select("id, current_bid, created_at")
+      .eq("category_id", listing.category_id)
+      .eq("is_active", true)
+      .then(({ data }) => setBoard((data ?? []) as typeof board));
+  }, [listing.category_id]);
+
+  const bidNum = parseFloat(bidTarget || "0");
+  const delta = Math.max(0, bidNum - Number(listing.current_bid));
 
   async function go() {
     setError(null);
-    const target = parseFloat(bidTarget);
+    const target = bidNum;
     if (!(target > Number(listing.current_bid))) {
       return void setError(`Enter a total above $${Number(listing.current_bid).toFixed(2)}.`);
     }
@@ -86,7 +101,16 @@ export default function BidUpModal({ listing, onClose }: Props) {
           />
         </div>
         <p className="mt-1.5 font-data text-xs tabular-nums text-ink/40">
-          You will be charged <span className="font-bold text-ink">${delta.toFixed(2)}</span>
+          {listing.category_id && bidNum >= Number(listing.current_bid) + 0.01 ? (
+            <>
+              Takes #{previewRank(bidNum, board, listing.id)} at ${bidNum.toFixed(2)} — you pay{" "}
+              <span className="font-bold text-ink">${delta.toFixed(2)}</span>
+            </>
+          ) : (
+            <>
+              You will be charged <span className="font-bold text-ink">${delta.toFixed(2)}</span>
+            </>
+          )}
         </p>
 
         {error && (

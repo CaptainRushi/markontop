@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Listing } from "@/lib/types";
 import { categoryById } from "@/lib/categories";
 
 interface TickerItem {
@@ -14,41 +13,29 @@ interface TickerItem {
   updated_at: string;
 }
 
-/**
- * BidTicker — scrolling mono line of recent Stripe-confirmed bids.
- * Pauses on hover/focus. Falls back to static list under reduced-motion.
- */
 export default function BidTicker() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [paused, setPaused] = useState(false);
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     const supabase = getSupabaseBrowserClient();
-    supabase
-      .from("listings")
-      .select("id,title,target_url,current_bid,category_id,updated_at")
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(10)
-      .then(({ data }) => {
-        if (data) setItems(data as TickerItem[]);
-      });
-
+    const fetch = () =>
+      supabase
+        .from("listings")
+        .select("id,title,target_url,current_bid,category_id,updated_at")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(10)
+        .then(({ data }) => {
+          if (data) setItems(data as TickerItem[]);
+        });
+    void fetch();
     const channel = supabase
       .channel("ticker")
-      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => {
-        supabase
-          .from("listings")
-          .select("id,title,target_url,current_bid,category_id,updated_at")
-          .eq("is_active", true)
-          .order("updated_at", { ascending: false })
-          .limit(10)
-          .then(({ data }) => {
-            if (data) setItems(data as TickerItem[]);
-          });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => void fetch())
       .subscribe();
-
     return () => {
       void supabase.removeChannel(channel);
     };
@@ -56,12 +43,28 @@ export default function BidTicker() {
 
   if (items.length === 0) return null;
 
-  // Duplicate items for seamless loop
+  // Reduced-motion: static vertical list
+  if (reduced) {
+    return (
+      <div className="border-y border-white/[0.06] bg-track px-4 py-3 sm:px-6">
+        <p className="font-data text-[10px] font-medium uppercase tracking-[0.12em] text-paper/25">Recent activity</p>
+        <ul className="mt-2 space-y-1">
+          {items.slice(0, 5).map((it) => (
+            <li key={it.id} className="font-data text-xs tracking-wide text-paper/40">
+              {it.target_url} — <span className="font-bold text-paper">${Number(it.current_bid).toFixed(2)}</span>
+              {it.category_id && <span className="text-paper/25"> in {categoryById(it.category_id)?.name}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   const loop = [...items, ...items];
 
   return (
     <div
-      className="relative overflow-hidden border-y border-white/[0.06] bg-ink py-2"
+      className="relative overflow-hidden border-y border-white/[0.06] bg-track py-2"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -70,26 +73,19 @@ export default function BidTicker() {
       aria-label="Recent bids"
     >
       <div
-        className="flex w-max gap-8 motion-safe:animate-[ticker_32s_linear_infinite] motion-reduce:animate-none"
+        className="flex w-max gap-8 motion-safe:animate-[ticker_30s_linear_infinite]"
         style={{ animationPlayState: paused ? "paused" : "running" }}
       >
-        {loop.map((item, i) => {
-          const cat = item.category_id ? categoryById(item.category_id)?.name : null;
-          return (
-            <span
-              key={`${item.id}-${i}`}
-              className="flex shrink-0 items-center gap-2 font-data text-[11px] tracking-wide text-paper/40 sm:text-xs"
-            >
-              <span className="text-paper/70">{item.target_url}</span>
-              <span className="text-white/20">—</span>
-              <span className="text-ledger">${Number(item.current_bid).toFixed(2)}</span>
-              {cat && <span className="hidden text-paper/25 sm:inline">in {cat}</span>}
-              <span className="mx-1 text-white/10">·</span>
-            </span>
-          );
-        })}
+        {loop.map((it, i) => (
+          <span key={`${it.id}-${i}`} className="flex shrink-0 items-center gap-2 font-data text-[11px] tracking-wide text-paper/35 sm:text-xs">
+            <span className="text-paper/60">{it.target_url}</span>
+            <span className="text-white/15">—</span>
+            <span className="font-bold text-signal">${Number(it.current_bid).toFixed(2)}</span>
+            {it.category_id && <span className="hidden text-paper/20 sm:inline">in {categoryById(it.category_id)?.name}</span>}
+            <span className="mx-1 text-white/8">·</span>
+          </span>
+        ))}
       </div>
-
       <style>{`@keyframes ticker { from { transform: translateX(0) } to { transform: translateX(-50%) } }`}</style>
     </div>
   );

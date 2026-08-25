@@ -1,17 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #16130f;
+  --color-track: #0b0d10;
   --color-paper: #f6f3ec;
-  --color-gold: #c6a15b;
-  --color-silver: #ada79b;
-  --color-bronze: #a5714a;
-  --color-ledger: #3f6b4f;
-  --color-auction-red: #9c3b2e;
-  --color-ink-soft: #2a2520;
-  --color-ink-muted: #6b6560;
+  --color-gold: #ffc72c;
+  --color-silver: #c7cdd6;
+  --color-bronze: #cd7f32;
+  --color-spray: #f2f5f8;
+  --color-signal: #00d46a;
+  --color-flag: #e10600;
+  --color-ink: #0b0d10;
+  --color-ink-soft: #15181d;
+  --color-ink-raised: #1a1e24;
+  --color-ink-muted: #5a626e;
   --color-paper-dim: #ede8db;
-  --font-display: var(--font-fraunces), Georgia, serif;
+  /* legacy aliases for gradual migration */
+  --color-ledger: #00d46a;
+  --color-auction-red: #e10600;
+  --font-display: var(--font-oswald), "Barlow Condensed", "Oswald", system-ui, sans-serif;
   --font-body: var(--font-general), "General Sans", Switzer, system-ui, sans-serif;
   --font-data: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
   --radius-sm: 4px;
@@ -19,49 +25,45 @@
   --radius-lg: 8px;
 }
 
-/* ——— Base ——— */
 html {
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
 }
 
 body {
-  background: var(--color-ink);
+  background: var(--color-track);
   color: var(--color-paper);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* ——— Focus ——— */
 *:focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;
   border-radius: 2px;
 }
 
-/* ——— Selection ——— */
 ::selection {
   background: var(--color-gold);
-  color: var(--color-ink);
+  color: var(--color-track);
 }
 
-/* ——— Scrollbar ——— */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-ink-soft);
+  background: #1e232b;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* ——— Utilities ——— */
 .font-display {
   font-family: var(--font-display);
+  font-stretch: condensed;
 }
 .font-data {
   font-family: var(--font-data);
@@ -71,25 +73,27 @@ body {
     "ss02" 1;
 }
 
-/* Hairline — 0.5px on retina, 1px fallback */
 .hairline-b {
-  border-bottom: 1px solid rgba(246, 243, 236, 0.08);
+  border-bottom: 1px solid rgba(242, 245, 248, 0.07);
 }
 .hairline-t {
-  border-top: 1px solid rgba(246, 243, 236, 0.08);
-}
-.hairline-y {
-  border-top: 1px solid rgba(246, 243, 236, 0.08);
-  border-bottom: 1px solid rgba(246, 243, 236, 0.08);
+  border-top: 1px solid rgba(242, 245, 248, 0.07);
 }
 
-/* Paper surface */
 .surface-paper {
   background: var(--color-paper);
-  color: var(--color-ink);
+  color: var(--color-track);
 }
 
-/* Reduced motion */
+/* F1 number treatment */
+.podium-number {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: condensed;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

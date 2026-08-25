@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ImageUp, Loader2, UploadCloud } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CATEGORIES, ENTRY_FLOOR, TAKEOVER_INCREMENT } from "@/lib/categories";
 import { isValidNormalizedUrl, normalizeUrl } from "@/lib/url";
-import { minimumBidTarget } from "@/lib/ranking";
+import { minimumBidTarget, previewRank } from "@/lib/ranking";
 
 interface ExistingListing {
   owner_email: string;
@@ -33,6 +33,18 @@ export default function SubmitForm() {
   const [bidTarget, setBidTarget] = useState("1.00");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // ponytail: full board per category (small boards in v1) — paginate if a category outgrows ~1k rows
+  const [board, setBoard] = useState<Array<{ id: string; current_bid: number; created_at: string }>>([]);
+
+  useEffect(() => {
+    if (!categoryId) return void setBoard([]);
+    void getSupabaseBrowserClient()
+      .from("listings")
+      .select("id, current_bid, created_at")
+      .eq("category_id", categoryId)
+      .eq("is_active", true)
+      .then(({ data }) => setBoard((data ?? []) as typeof board));
+  }, [categoryId]);
 
   const normalized = normalizeUrl(targetUrl);
   const urlValid = isValidNormalizedUrl(normalized);
@@ -42,12 +54,10 @@ export default function SubmitForm() {
   const previewLine = (() => {
     const n = parseFloat(bidTarget);
     if (!n || Number.isNaN(n)) return null;
-    if (isUpgrade) {
-      const diff = Math.max(0, n - Number(existing!.current_bid));
-      return `Raise to $${n.toFixed(2)} — pay $${diff.toFixed(2)} difference`;
-    }
-    if (existing) return `Takes slot at $${n.toFixed(2)} — pay full amount`;
-    return `Lands on the board at $${n.toFixed(2)}`;
+    const rank = previewRank(n, board);
+    if (rank <= 3 && n >= minBid) return `Takes #${rank} at $${n.toFixed(2)}`;
+    if (n >= minBid) return `Lands at #${rank} for $${n.toFixed(2)}`;
+    return `Minimum for this slot is $${minBid.toFixed(2)}`;
   })();
 
   async function checkUrl(url: string) {

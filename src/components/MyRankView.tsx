@@ -8,6 +8,7 @@ import { getRank } from "@/lib/ranking";
 import { categoryById } from "@/lib/categories";
 import type { Listing } from "@/lib/types";
 import BidUpModal from "@/components/BidUpModal";
+import OutbidTray, { type OutbidEvent } from "@/components/OutbidToast";
 
 interface RankedRow extends Listing {
   rank: number | null;
@@ -24,6 +25,7 @@ export default function MyRankView() {
   const [loadingList, setLoadingList] = useState(false);
   const [modalListing, setModalListing] = useState<Listing | null>(null);
   const [outbidNotice, setOutbidNotice] = useState<string | null>(null);
+  const [outbidEvents, setOutbidEvents] = useState<OutbidEvent[]>([]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -81,6 +83,47 @@ export default function MyRankView() {
   useEffect(() => {
     if (user?.email) void loadMine(user.email.toLowerCase());
   }, [user, loadMine]);
+
+  // Realtime outbid watch — any UPDATE to a listing I own whose current_bid rose
+  // (someone paid to move past it) pushes a persistent tray card.
+  useEffect(() => {
+    if (!user?.email) return;
+    const email = user.email.toLowerCase();
+    const supabase = getSupabaseBrowserClient();
+    const known = new Map<string, number>();
+    void supabase
+      .from("listings")
+      .select("id, current_bid")
+      .eq("owner_email", email)
+      .then(({ data }) => {
+        (data ?? []).forEach((r: { id: string; current_bid: number }) =>
+          known.set(r.id, Number(r.current_bid))
+        );
+      });
+    const channel = supabase
+      .channel(`outbid-${email}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "listings", filter: `owner_email=eq.${email}` },
+        (payload) => {
+          const row = payload.new as { id: string; title: string; current_bid: number };
+          const prev = known.get(row.id);
+          known.set(row.id, Number(row.current_bid));
+          if (prev !== undefined && Number(row.current_bid) > prev) {
+            setOutbidEvents((evts) =>
+              evts.some((e) => e.id === row.id)
+                ? evts.map((e) => (e.id === row.id ? { ...e, amount: Number(row.current_bid) } : e))
+                : [...evts, { id: row.id, title: row.title, amount: Number(row.current_bid) }]
+            );
+            void loadMine(email); // refresh ledger ranks
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.email, loadMine]);
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
@@ -234,6 +277,7 @@ export default function MyRankView() {
       </div>
 
       {modalListing && <BidUpModal listing={modalListing} onClose={() => setModalListing(null)} />}
+      <OutbidTray events={outbidEvents} onDismiss={(id) => setOutbidEvents((evts) => evts.filter((e) => e.id !== id))} />
     </>
   );
 }

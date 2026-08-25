@@ -33,11 +33,18 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <BidTicker />
       </div>
 
-      <div className="pt-6 sm:pt-8">
+      <div className="pt-5 sm:pt-7">
+        <p className="font-data text-[10px] font-bold uppercase tracking-[0.16em] text-paper/30 sm:text-[11px]">
+          {category.name.toUpperCase()} - TOP 3
+        </p>
+      </div>
+
+      <div className="mt-3">
+        <RealtimeBoard categoryId={category.id} />
+      </div>
+
+      <div className="mt-6 border-t border-white/[0.06] pt-4">
         <CategoryPillNav activeSlug={category.slug} />
-        <div className="mt-4 sm:mt-6">
-          <RealtimeBoard categoryId={category.id} />
-        </div>
       </div>
     </div>
   );
