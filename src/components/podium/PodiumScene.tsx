@@ -2,24 +2,18 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Sparkles, MeshReflectorMaterial } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Environment, MeshReflectorMaterial } from "@react-three/drei";
 import { EffectComposer, Bloom, N8AO, Vignette } from "@react-three/postprocessing";
 import type { Group, Mesh, Texture } from "three";
 import type { Listing } from "@/lib/types";
 
-// ── F1 podium geometry ──
 const SLOTS: Record<number, [number, number]> = {
-  1: [0, 3.2],
-  2: [-2.85, 2.15],
-  3: [2.85, 1.45],
+  1: [0, 3.35],
+  2: [-2.95, 2.22],
+  3: [2.95, 1.52],
 };
-
-const MEDAL: Record<number, string> = {
-  1: "#FFC72C",
-  2: "#C7CDD6",
-  3: "#CD7F32",
-};
+const MEDAL: Record<number, string> = { 1: "#FFC72C", 2: "#C7CDD6", 3: "#CD7F32" };
 
 function damp(a: number, b: number, l: number, dt: number) {
   return a + (b - a) * (1 - Math.exp(-l * dt));
@@ -38,7 +32,6 @@ function useBannerTexture(url: string | null): Texture | null {
       t.anisotropy = 8;
       t.minFilter = THREE.LinearMipmapLinearFilter;
       t.magFilter = THREE.LinearFilter;
-      t.generateMipmaps = true;
       setTex(t);
     }, undefined, () => setTex(null));
     return () => { dead = true; };
@@ -47,303 +40,183 @@ function useBannerTexture(url: string | null): Texture | null {
   return tex;
 }
 
-// ── Sponsor wall — low envMapIntensity so it stays backdrop ──
 function SponsorWall() {
-  const texture = useMemo(() => {
+  const tex = useMemo(() => {
     const c = document.createElement("canvas");
-    c.width = 512; c.height = 256;
+    c.width = 640; c.height = 320;
     const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#0d0f12";
-    ctx.fillRect(0, 0, 512, 256);
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-    for (let y = 16; y < 256; y += 42) {
-      for (let x = 16; x < 512; x += 72) {
-        const w = 48 + ((x * 7) % 16);
-        ctx.fillRect(x, y, w, 18);
-        ctx.fillStyle = "rgba(255,199,44,0.08)";
-        ctx.fillRect(x, y + 22, w * 0.6, 1);
-        ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.fillStyle = "#0a0d11";
+    ctx.fillRect(0, 0, 640, 320);
+    // Sponsor blocks — larger, more legible
+    ctx.fillStyle = "rgba(255,255,255,0.055)";
+    for (let y = 24; y < 300; y += 52) {
+      for (let x = 24; x < 620; x += 88) {
+        const w = 52 + ((x * 13) % 20);
+        ctx.fillRect(x, y, w, 20);
+        ctx.fillStyle = "rgba(255,199,44,0.09)";
+        ctx.fillRect(x, y + 26, w * 0.55, 1.5);
+        ctx.fillStyle = "rgba(255,255,255,0.055)";
       }
     }
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    for (let x = 128; x < 512; x += 128) ctx.fillRect(x, 0, 1, 256);
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(2, 1); tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
+    ctx.fillStyle = "rgba(255,255,255,0.035)";
+    for (let x = 160; x < 640; x += 160) ctx.fillRect(x, 0, 1, 320);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(1.6, 1); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
   }, []);
   return (
-    <mesh position={[0, 1.8, -2.2]}>
-      <planeGeometry args={[22, 5.5]} />
-      <meshStandardMaterial map={texture} roughness={0.88} metalness={0.04} envMapIntensity={0.55} transparent opacity={0.98} />
+    <mesh position={[0, 1.9, -2.35]}>
+      <planeGeometry args={[24, 6]} />
+      <meshStandardMaterial map={tex} roughness={0.92} metalness={0.02} envMapIntensity={0.45} />
     </mesh>
   );
 }
 
-function StrobeFlash({ active }: { active: boolean }) {
-  const ref = useRef<Mesh>(null);
-  const opacity = useRef(0);
-  useFrame((_, dt) => {
-    const m = ref.current; if (!m) return;
-    const mat = m.material as THREE.MeshBasicMaterial;
-    if (active) {
-      const t = performance.now() % 600;
-      if (t < 60) opacity.current = 0.7;
-      else if (t < 120) opacity.current = 0.08;
-      else if (t < 180) opacity.current = 0.5;
-      else opacity.current = damp(opacity.current, 0, 12, dt);
-    } else opacity.current = damp(opacity.current, 0, 14, dt);
-    mat.opacity = opacity.current;
-  });
-  return (
-    <mesh ref={ref} position={[0, 1.5, 4]}>
-      <planeGeometry args={[22, 12]} />
-      <meshBasicMaterial color="#F2F5F8" transparent opacity={0} depthWrite={false} />
-    </mesh>
-  );
-}
-
-function ConfettiBurst({ at, trigger }: { at: [number, number, number]; trigger: number }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    if (trigger === 0) return;
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), 1200);
-    return () => clearTimeout(t);
-  }, [trigger]);
-  if (!visible) return null;
-  return (
-    <group position={at}>
-      <Sparkles count={55} scale={[1.6, 1.2, 1.2]} size={1.8} speed={0.9} color="#FFC72C" opacity={0.85} />
-      <Sparkles count={28} scale={[1.4, 1.0, 1.0]} size={1.2} speed={1.1} color="#F2F5F8" opacity={0.6} />
-    </group>
-  );
-}
-
-function AmbientParticles({ enabled }: { enabled: boolean }) {
-  if (!enabled) return null;
-  return (
-    <group>
-      <Sparkles count={42} scale={[9, 4, 3]} size={0.7} speed={0.18} color="#FFC72C" opacity={0.28} />
-      <Sparkles count={28} scale={[9, 3, 3]} size={0.45} speed={0.12} color="#F2F5F8" opacity={0.18} />
-    </group>
-  );
-}
-
-function Riser({
-  listing, rank, appearDelay, burstKey, reducedMotion,
-}: {
-  listing: Listing | null; rank: number; appearDelay: number; burstKey: number; reducedMotion: boolean;
-}) {
+function Riser({ listing, rank, delay, reduced }: { listing: Listing | null; rank: number; delay: number; reduced: boolean }) {
   const group = useRef<Group>(null);
   const block = useRef<Mesh>(null);
-  const bannerRef = useRef<Mesh>(null);
+  const banner = useRef<Mesh>(null);
   const [x, h] = SLOTS[rank];
   const tex = useBannerTexture(listing?.banner_url ?? null);
-  const hasListing = !!listing;
-  const [risen, setRisen] = useState(reducedMotion);
+  const has = !!listing;
+  const [risen, setRisen] = useState(reduced);
   const [swapping, setSwapping] = useState(false);
   const swapT = useRef(0);
   const prevId = useRef<string | null>(listing?.id ?? null);
 
   useEffect(() => {
-    if (reducedMotion) return;
-    const t = setTimeout(() => setRisen(true), appearDelay);
+    if (reduced) return;
+    const t = setTimeout(() => setRisen(true), delay);
     return () => clearTimeout(t);
-  }, [appearDelay, reducedMotion]);
-
+  }, [delay, reduced]);
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reduced) return;
     if (prevId.current !== (listing?.id ?? null) && prevId.current !== null) {
       setSwapping(true); swapT.current = 0;
-      const timer = setTimeout(() => setSwapping(false), 900);
+      const tm = setTimeout(() => setSwapping(false), 850);
       prevId.current = listing?.id ?? null;
-      return () => clearTimeout(timer);
+      return () => clearTimeout(tm);
     }
     prevId.current = listing?.id ?? null;
-  }, [listing?.id, reducedMotion]);
+  }, [listing?.id, reduced]);
 
-  // Fix 2: exact PBR numbers per spec
-  const riserMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#14181d", metalness: 0.72, roughness: 0.32, envMapIntensity: 1.25,
-  }), []);
-  const faceMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: MEDAL[rank], metalness: 0.92, roughness: 0.18, envMapIntensity: 1.5,
-  }), [rank]);
-  const bannerMat = useMemo(() => {
-    if (tex) return new THREE.MeshStandardMaterial({ map: tex, metalness: 0, roughness: 0.58, envMapIntensity: 0.3 });
-    return new THREE.MeshStandardMaterial({ color: "#1a1e24", roughness: 0.88, metalness: 0 });
-  }, [tex]);
+  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#171a1f", metalness: 0.68, roughness: 0.34, envMapIntensity: 1.25 }), []);
+  const medalMat = useMemo(() => new THREE.MeshStandardMaterial({ color: MEDAL[rank], metalness: 0.88, roughness: 0.22, envMapIntensity: 1.4 }), [rank]);
+  const bannerMat = useMemo(() => tex ? new THREE.MeshStandardMaterial({ map: tex, metalness: 0, roughness: 0.62, envMapIntensity: 0.25 }) : new THREE.MeshStandardMaterial({ color: "#1e2228", roughness: 0.9 }), [tex]);
   useEffect(() => { if (tex) (bannerMat as THREE.MeshStandardMaterial).map = tex; bannerMat.needsUpdate = true; }, [tex, bannerMat]);
 
-  const numberTex = useMemo(() => {
-    const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+  const numTex = useMemo(() => {
+    const c = document.createElement("canvas"); c.width = 512; c.height = 512;
     const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, 0, 256, 256);
-    ctx.font = "900 160px Oswald, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillText(String(rank), 130, 134);
-    ctx.fillStyle = MEDAL[rank]; ctx.fillText(String(rank), 128, 130);
+    ctx.fillStyle = "#171a1f"; ctx.fillRect(0, 0, 512, 512);
+    ctx.font = "900 280px Oswald, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillText(String(rank), 260, 268);
+    ctx.fillStyle = MEDAL[rank]; ctx.fillText(String(rank), 256, 262);
+    // thin outline
+    ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 3; ctx.strokeText(String(rank), 256, 262);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   }, [rank]);
-  const numberMat = useMemo(() => new THREE.MeshStandardMaterial({ map: numberTex, roughness: 0.6, metalness: 0.12 }), [numberTex]);
 
-  useFrame((state, dt) => {
-    const g = group.current; const m = block.current; if (!g || !m) return;
+  useFrame((_, dt) => {
+    const g = group.current, m = block.current; if (!g || !m) return;
     const d = Math.min(dt, 0.08);
-    g.position.x = reducedMotion ? x : damp(g.position.x, x, 5, d);
-    if (!risen) {
-      m.scale.y = damp(m.scale.y, 0.04, 10, d); m.position.y = m.scale.y / 2 - 0.9;
-      if (bannerRef.current) bannerRef.current.visible = false;
-    } else if (swapping && !reducedMotion) {
-      swapT.current = Math.min(1, swapT.current + d / 0.82);
-      const dip = Math.sin(swapT.current * Math.PI) * -0.62;
-      const overshoot = swapT.current < 0.55 ? 0 : Math.sin((swapT.current - 0.55) * Math.PI * 2.2) * 0.08 * (1 - swapT.current);
-      m.scale.y = damp(m.scale.y, h + overshoot, 7, d); m.position.y = m.scale.y / 2 + dip;
-      if (bannerRef.current) { const mat = bannerRef.current.material as THREE.MeshStandardMaterial; mat.opacity = Math.max(0, 1 - swapT.current * 2.4); mat.transparent = true; }
+    g.position.x = reduced ? x : damp(g.position.x, x, 6, d);
+    if (!risen) { m.scale.y = damp(m.scale.y, 0.06, 12, d); m.position.y = m.scale.y / 2 - 0.85; if (banner.current) banner.current.visible = false; }
+    else if (swapping && !reduced) {
+      swapT.current = Math.min(1, swapT.current + d / 0.78);
+      const dip = Math.sin(swapT.current * Math.PI) * -0.55;
+      m.scale.y = damp(m.scale.y, h, 7, d); m.position.y = m.scale.y / 2 + dip;
+      if (banner.current) { const mat = banner.current.material as THREE.MeshStandardMaterial; mat.opacity = Math.max(0, 1 - swapT.current * 2.2); mat.transparent = true; }
     } else {
-      m.scale.y = damp(m.scale.y, h, reducedMotion ? 12 : 6, d); m.position.y = m.scale.y / 2;
-      if (bannerRef.current) { const mat = bannerRef.current.material as THREE.MeshStandardMaterial; if (!reducedMotion) mat.opacity = damp(mat.opacity ?? 1, 1, 12, d); else mat.opacity = 1; bannerRef.current.visible = hasListing; }
+      m.scale.y = damp(m.scale.y, h, reduced ? 12 : 6, d); m.position.y = m.scale.y / 2;
+      if (banner.current) { const mat = banner.current.material as THREE.MeshStandardMaterial; mat.opacity = 1; banner.current.visible = has; }
     }
-    void state;
   });
 
   return (
     <group ref={group} position={[x, -0.62, 0]}>
-      <mesh position={[0, h + 0.03, 0]}>
-        <boxGeometry args={[2.14, 0.06, 2.14]} />
-        <meshStandardMaterial color={MEDAL[rank]} roughness={0.28} metalness={0.55} emissive={MEDAL[rank]} emissiveIntensity={0.08} />
+      {/* Top medal cap with edge */}
+      <mesh position={[0, h + 0.04, 0]}>
+        <boxGeometry args={[2.16, 0.07, 2.16]} />
+        <meshStandardMaterial color={MEDAL[rank]} roughness={0.26} metalness={0.62} emissive={MEDAL[rank]} emissiveIntensity={0.09} />
       </mesh>
-      <mesh ref={block} position={[0, h / 2, 0]} material={riserMat} castShadow receiveShadow>
-        <boxGeometry args={[2, 1, 2]} />
+      {/* Body */}
+      <mesh ref={block} position={[0, h / 2, 0]} material={bodyMat} castShadow receiveShadow>
+        <boxGeometry args={[2.06, 1, 2.06]} />
       </mesh>
-      {/* Bevel edge highlight */}
-      <mesh position={[0, h / 2, 0]}>
-        <boxGeometry args={[2.02, h * 0.98, 2.02]} />
-        <meshBasicMaterial color={MEDAL[rank]} transparent opacity={0.04} wireframe />
+      {/* Number inset — large, centered on lower front */}
+      <mesh position={[0, 0.42, 1.035]}>
+        <planeGeometry args={[1.92, 0.72]} />
+        <meshStandardMaterial map={numTex} roughness={0.42} metalness={0.35} transparent opacity={0.96} />
       </mesh>
-      <mesh position={[0, 0.28, 1.018]} material={faceMat}>
-        <planeGeometry args={[1.9, 0.52]} />
+      {/* Banner frame */}
+      {has && (
+        <mesh position={[0, h / 2 + 0.32, 1.03]}>
+          <planeGeometry args={[1.94, 1.02]} />
+          <meshBasicMaterial color="#07090b" />
+        </mesh>
+      )}
+      {/* Banner */}
+      <mesh ref={banner} position={[0, h / 2 + 0.32, 1.038]} material={bannerMat} visible={has}>
+        <planeGeometry args={[1.86, 0.94]} />
       </mesh>
-      <mesh position={[0, 0.28, 1.021]} material={numberMat}>
-        <planeGeometry args={[0.42, 0.42]} />
-      </mesh>
-      {/* Banner with frame */}
-      <mesh position={[0, h / 2 + 0.18, 1.012]} visible={hasListing}>
-        <planeGeometry args={[1.88, 0.94]} />
-        <meshBasicMaterial color="#0a0c0e" />
-      </mesh>
-      <mesh ref={bannerRef} position={[0, h / 2 + 0.18, 1.025]} material={bannerMat} visible={hasListing}>
-        <planeGeometry args={[1.82, 0.88]} />
-      </mesh>
-      <pointLight position={[0, h * 0.55, -0.8]} intensity={hasListing ? 18 : 6} color={MEDAL[rank]} distance={3.5} decay={2} />
-      {!reducedMotion && <ConfettiBurst at={[0, h + 0.4, 0.6]} trigger={burstKey} />}
+      {/* Rim glow */}
+      <pointLight position={[0, h * 0.5, -0.7]} intensity={has ? 14 : 4} color={MEDAL[rank]} distance={3.2} decay={2} />
     </group>
   );
 }
 
-function DriftCam({ enabled }: { enabled: boolean }) {
-  const { camera } = useThree();
-  useFrame(({ clock }) => {
-    if (!enabled) return;
-    const t = clock.getElapsedTime();
-    const angle = (t / 76) * Math.PI * 2;
-    const r = 0.42;
-    camera.position.x = Math.sin(angle) * r;
-    camera.position.z = 8.8 + Math.cos(angle) * r * 0.32;
-    camera.lookAt(0, 1.1, 0);
-  });
-  return null;
-}
-
 export default function PodiumScene({ top3 }: { top3: Array<Listing & { rank: number }> }) {
   const byRank = new Map(top3.map((l) => [l.rank, l]));
-  const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const [flashActive, setFlashActive] = useState(false);
-  const [burstKeys, setBurstKeys] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0 });
-  const prevIds = useRef<Map<number, string | null>>(new Map());
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    const t1 = setTimeout(() => { setFlashActive(true); setBurstKeys((k) => ({ ...k, 1: 1 })); }, 900);
-    const t2 = setTimeout(() => setFlashActive(false), 1400);
-    const t3 = setTimeout(() => setBurstKeys((k) => ({ ...k, 1: 0 })), 2200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [reducedMotion]);
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    let changed = false;
-    for (const rank of [1, 2, 3] as const) {
-      const cur = byRank.get(rank)?.id ?? null;
-      const prev = prevIds.current.get(rank) ?? null;
-      if (prev !== null && prev !== cur) { changed = true; const r = rank; setBurstKeys((k) => ({ ...k, [r]: (k[r] ?? 0) + 1 })); }
-      prevIds.current.set(rank, cur);
-    }
-    if (changed) { setFlashActive(true); const t = setTimeout(() => setFlashActive(false), 420); return () => clearTimeout(t); }
-  }, [top3, reducedMotion, byRank]);
-
-  const delays: Record<number, number> = { 3: 100, 2: 300, 1: 540 };
+  const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const delays: Record<number, number> = { 3: 120, 2: 340, 1: 620 };
 
   return (
     <Canvas
       shadows="soft"
-      dpr={[1, 2]}
-      camera={{ position: [0, 2.4, 8.8], fov: 40 }}
+      dpr={[1, 1.9]}
+      camera={{ position: [0, 2.55, 9.2], fov: 38 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       className="!touch-none"
-      onCreated={({ gl, scene }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.28; scene.fog = new THREE.Fog("#0B0D10", 9, 18); }}
+      onCreated={({ gl, scene }) => {
+        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl.toneMappingExposure = 1.32;
+        scene.fog = new THREE.FogExp2("#0B0D10", 0.042);
+      }}
     >
       <color attach="background" args={["#0B0D10"]} />
+      <Environment preset="city" environmentIntensity={1.18} />
 
-      {/* Fix 1: HDRI environment */}
-      <Environment preset="city" environmentIntensity={1.1} />
-
-      {/* Fix 3: soft shadows, 2048 key light */}
-      <directionalLight position={[4, 8, 4]} intensity={2.8} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-camera-near={0.5} shadow-camera-far={22} />
-      <spotLight position={[0, 8, 3]} angle={0.36} penumbra={0.5} intensity={145} color="#FFF8E8" castShadow shadow-mapSize={[1024, 1024]} decay={1.2} />
-      <spotLight position={[-3.2, 7, 2]} angle={0.34} penumbra={0.6} intensity={85} color="#E8F0FF" />
-      <spotLight position={[3.2, 7, 2]} angle={0.34} penumbra={0.6} intensity={80} color="#E8F0FF" />
-      <spotLight position={[0, 4, -4]} angle={0.9} penumbra={0.78} intensity={52} color="#FFC72C" />
-      <ambientLight intensity={0.22} color="#F2F5F8" />
-      <directionalLight position={[-5, 3, -5]} intensity={0.14} color="#8aa0c2" />
+      {/* Key + floods */}
+      <directionalLight position={[5, 9, 5]} intensity={3.0} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.00035} shadow-camera-near={0.4} shadow-camera-far={24} />
+      <spotLight position={[0, 9, 3.5]} angle={0.34} penumbra={0.48} intensity={160} color="#FFF6E8" castShadow shadow-mapSize={[1024, 1024]} decay={1.15} />
+      <spotLight position={[-3.4, 7.5, 2.2]} angle={0.32} penumbra={0.58} intensity={88} color="#E8F0FF" />
+      <spotLight position={[3.4, 7.5, 2.2]} angle={0.32} penumbra={0.58} intensity={82} color="#E8F0FF" />
+      <spotLight position={[0, 4.5, -3.5]} angle={0.85} penumbra={0.75} intensity={55} color="#FFC72C" />
+      <ambientLight intensity={0.2} color="#F2F5F8" />
 
       <SponsorWall />
 
-      {/* Floor — MeshReflector for venue reflection */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.635, 0]} receiveShadow>
-        <planeGeometry args={[24, 14]} />
-        <MeshReflectorMaterial
-          blur={[400, 120]}
-          resolution={1024}
-          mixBlur={0.9}
-          mixStrength={28}
-          roughness={0.26}
-          depthScale={1.1}
-          minDepthThreshold={0.35}
-          maxDepthThreshold={1.35}
-          color="#0a0d11"
-          metalness={0.28}
-        />
+        <planeGeometry args={[26, 14]} />
+        <MeshReflectorMaterial blur={[420, 140]} resolution={1024} mixBlur={0.9} mixStrength={32} roughness={0.24} depthScale={1.15} minDepthThreshold={0.32} maxDepthThreshold={1.4} color="#090c10" metalness={0.3} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.625, 0]}>
-        <planeGeometry args={[22, 0.018]} />
-        <meshBasicMaterial color="#FFC72C" transparent opacity={0.22} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.626, 0]}>
+        <planeGeometry args={[26, 0.02]} />
+        <meshBasicMaterial color="#FFC72C" transparent opacity={0.24} />
       </mesh>
 
       {[1, 2, 3].map((rank) => (
         <Suspense key={rank} fallback={<group />}>
-          <Riser rank={rank} listing={byRank.get(rank) ?? null} appearDelay={delays[rank]} burstKey={burstKeys[rank] ?? 0} reducedMotion={reducedMotion} />
+          <Riser rank={rank} listing={byRank.get(rank) ?? null} delay={delays[rank]} reduced={reduced} />
         </Suspense>
       ))}
 
-      <StrobeFlash active={flashActive && !reducedMotion} />
-      <AmbientParticles enabled={!reducedMotion} />
-      <DriftCam enabled={!reducedMotion} />
-
       <EffectComposer enableNormalPass={false}>
-        <N8AO intensity={2.2} aoRadius={0.55} quality="performance" />
-        <Bloom luminanceThreshold={0.82} luminanceSmoothing={0.88} intensity={0.72} mipmapBlur radius={0.35} />
-        <Vignette eskil={false} offset={0.14} darkness={0.52} />
+        <N8AO intensity={2.4} aoRadius={0.6} quality="performance" />
+        <Bloom luminanceThreshold={0.8} luminanceSmoothing={0.88} intensity={0.68} mipmapBlur radius={0.38} />
+        <Vignette eskil={false} offset={0.12} darkness={0.48} />
       </EffectComposer>
     </Canvas>
   );
