@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Oswald, JetBrains_Mono, DM_Sans } from "next/font/google";
+import HeaderNav from "@/components/layout/HeaderNav";
 import "./globals.css";
 
 const oswald = Oswald({
@@ -32,7 +33,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${oswald.variable} ${jetbrains.variable} ${dmSans.variable}`}>
+    <html lang="en" className={`${oswald.variable} ${jetbrains.variable} ${dmSans.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-screen antialiased">
         {/* Header — F1 broadcast: tight, high-contrast, hairline */}
         <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-track/90 backdrop-blur-md">
@@ -45,32 +53,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               MARK<span className="text-gold">ONTOP</span>
             </Link>
 
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <Link
-                href="/my-rank"
-                className="px-3 py-1.5 text-[13px] font-medium tracking-wide text-paper/60 transition-colors hover:text-paper"
-              >
-                My Rank
-              </Link>
-              <Link
-                href="/rules"
-                className="hidden px-3 py-1.5 text-[13px] font-medium tracking-wide text-paper/60 transition-colors hover:text-paper sm:inline-block"
-              >
-                Rules
-              </Link>
-              <Link
-                href="/submit"
-                className="ml-1 bg-gold px-4 py-1.5 text-[12px] font-black tracking-[0.06em] text-track transition-colors hover:bg-[#ffd24d] sm:px-5 sm:text-[13px]"
-              >
-                TAKE A SPOT
-              </Link>
-            </nav>
+            <HeaderNav />
           </div>
         </header>
 
         <main className="mx-auto max-w-[1160px] px-4 pb-20 sm:px-6">{children}</main>
 
-        {/* Footer — minimal */}
+        {/* Footer — minimal: logo mark, Rules / Terms / Categories (brief 3.14) */}
         <footer className="border-t border-white/[0.05] py-8 text-center">
           <p className="mx-auto max-w-xl text-[11px] leading-relaxed tracking-wide text-paper/25">
             MarkOnTop is a deterministic paid-placement advertising service. Placement is purchased, not won.
@@ -81,6 +70,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ·{" "}
             <Link href="/rules" className="underline decoration-white/15 underline-offset-2 hover:text-paper/50">
               Rules
+            </Link>{" "}
+            ·{" "}
+            <Link href="/#categories" className="underline decoration-white/15 underline-offset-2 hover:text-paper/50">
+              Categories
             </Link>
           </p>
         </footer>

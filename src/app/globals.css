@@ -85,6 +85,23 @@ body {
   color: var(--color-track);
 }
 
+/* Light theme — paper becomes bg, track becomes text */
+html[data-theme="light"] {
+  --color-track: #f6f3ec;
+  --color-paper: #0b0d10;
+  --color-ink: #f6f3ec;
+  --color-ink-soft: #e8e2d4;
+  --color-ink-raised: #ffffff;
+  --color-ink-muted: #8a847c;
+}
+html[data-theme="light"] body {
+  background: var(--color-track);
+  color: var(--color-paper);
+}
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #d6d0c2;
+}
+
 /* F1 number treatment */
 .podium-number {
   font-family: var(--font-display);
