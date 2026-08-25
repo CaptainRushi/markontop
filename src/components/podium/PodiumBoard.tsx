@@ -22,7 +22,7 @@ export default function PodiumBoard({ top3 }: { top3: Array<Listing & { rank: nu
   };
 
   return (
-    <div className="relative overflow-hidden border border-white/[0.07] bg-track" role="img" aria-label="Top 3 placements">
+    <div className="relative overflow-hidden border border-white/[0.07] bg-[#0B0D10]" role="img" aria-label="Top 3 placements">
       {/* grid + vignette depth */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.05]"
@@ -47,7 +47,7 @@ export default function PodiumBoard({ top3 }: { top3: Array<Listing & { rank: nu
             >
               {/* Floating rank pill */}
               <div
-                className={`mb-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-gradient-to-b px-2.5 text-[11px] font-black tracking-wide text-track shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-1 ${medalGrad[rank]} ${ring[rank]}`}
+                className={`mb-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-gradient-to-b px-2.5 text-[11px] font-black tracking-wide text-[#0B0D10] shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-1 ${medalGrad[rank]} ${ring[rank]}`}
               >
                 #{rank}
               </div>
@@ -93,7 +93,7 @@ export default function PodiumBoard({ top3 }: { top3: Array<Listing & { rank: nu
 
               {/* Base plaque with big number */}
               <div
-                className={`mt-2 flex h-7 w-full items-center justify-center gap-1.5 text-xs font-black tracking-[0.08em] ${isFirst ? "bg-gold text-track" : rank === 2 ? "bg-silver text-track" : "bg-bronze text-white"}`}
+                className={`mt-2 flex h-7 w-full items-center justify-center gap-1.5 text-xs font-black tracking-[0.08em] ${isFirst ? "bg-gold text-[#0B0D10]" : rank === 2 ? "bg-silver text-[#0B0D10]" : "bg-bronze text-white"}`}
                 style={{ borderRadius: 6 }}
               >
                 <span className="font-display text-sm" style={{ fontStretch: "condensed" }}>

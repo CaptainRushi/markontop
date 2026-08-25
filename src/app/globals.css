@@ -101,6 +101,35 @@ html[data-theme="light"] body {
 html[data-theme="light"] ::-webkit-scrollbar-thumb {
   background: #d6d0c2;
 }
+html[data-theme="light"] .bg-track {
+  background-color: var(--color-track);
+}
+html[data-theme="light"] .text-paper {
+  color: var(--color-paper);
+}
+/* Keep podium stage dark in both themes — it's a theatrical stage, not page chrome */
+html[data-theme="light"] [role="img"][aria-label="Top 3 placements"] {
+  background-color: #0b0d10 !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+html[data-theme="light"] [role="img"][aria-label="Top 3 placements"] * {
+  border-color: inherit;
+}
+/* Light-mode borders: white/06 on light bg is invisible — remap to track at low opacity */
+html[data-theme="light"] .border-white\/\[0\.06\],
+html[data-theme="light"] .border-white\/\[0\.07\],
+html[data-theme="light"] .divide-white\/\[0\.06\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(11, 13, 16, 0.08) !important;
+}
+html[data-theme="light"] .bg-white\/\[0\.02\],
+html[data-theme="light"] .bg-white\/\[0\.03\],
+html[data-theme="light"] .bg-white\/\[0\.04\] {
+  background-color: rgba(11, 13, 16, 0.04) !important;
+}
+html[data-theme="light"] .text-paper\/60 { color: rgba(11, 13, 16, 0.6) !important; }
+html[data-theme="light"] .text-paper\/30 { color: rgba(11, 13, 16, 0.35) !important; }
+html[data-theme="light"] .text-paper\/25 { color: rgba(11, 13, 16, 0.3) !important; }
+html[data-theme="light"] .text-white\/\[0\.06\] { color: rgba(11, 13, 16, 0.08) !important; }
 
 /* F1 number treatment */
 .podium-number {
