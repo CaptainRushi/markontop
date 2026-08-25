@@ -9,25 +9,30 @@ alter table listings enable row level security;
 alter table bid_transactions enable row level security;
 
 -- Public read: boards are public
+drop policy if exists "categories_public_read" on categories;
 create policy "categories_public_read"
   on categories for select using (true);
 
 -- Public read on active listings (leaderboard is public data; owner_email
 -- exposure is intentional for a public bid board — same as outbid-style sites).
+drop policy if exists "listings_public_read_active" on listings;
 create policy "listings_public_read_active"
   on listings for select using (is_active = true);
 
 -- Owners may read their own listings even when deactivated.
+drop policy if exists "listings_owner_read" on listings;
 create policy "listings_owner_read"
   on listings for select
   using (owner_email = coalesce(auth.jwt() ->> 'email', ''));
 
 -- No client-side writes: all writes flow through the service-role webhook RPC.
+drop policy if exists "listings_service_write" on listings;
 create policy "listings_service_write"
   on listings for all
   using (false)
   with check (false);
 
+drop policy if exists "bid_transactions_service_only" on bid_transactions;
 create policy "bid_transactions_service_only"
   on bid_transactions for all
   using (false)
@@ -142,11 +147,13 @@ values ('banners', 'banners', true)
 on conflict (id) do nothing;
 
 -- Public read of banners
+drop policy if exists "banners_public_read" on storage.objects;
 create policy "banners_public_read"
   on storage.objects for select
   using (bucket_id = 'banners');
 
 -- Anyone may upload a banner pre-payment (validated app-side: type/size).
+drop policy if exists "banners_anyone_insert" on storage.objects;
 create policy "banners_anyone_insert"
   on storage.objects for insert
   with check (bucket_id = 'banners');
