@@ -6,11 +6,10 @@ import { categoryById } from "@/lib/categories";
 
 interface TickerItem {
   id: string;
-  title: string;
-  target_url: string;
-  current_bid: number;
-  category_id: string | null;
-  updated_at: string;
+  amount_cents: number;
+  listing_id: string;
+  created_at: string;
+  listings?: { target_url: string; category_id: string | null; title: string } | null;
 }
 
 export default function BidTicker() {
@@ -21,29 +20,45 @@ export default function BidTicker() {
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     const supabase = getSupabaseBrowserClient();
-    const fetch = () =>
+    const fetchTicker = () =>
       supabase
-        .from("listings")
-        .select("id,title,target_url,current_bid,category_id,updated_at")
-        .eq("is_active", true)
-        .order("updated_at", { ascending: false })
+        .from("bid_events")
+        .select("id, amount_cents, listing_id, created_at, listings!inner(target_url, category_id, title)")
+        .eq("status", "confirmed")
+        .order("created_at", { ascending: false })
         .limit(10)
-        .then(({ data }) => {
-          if (data) setItems(data as TickerItem[]);
+        .then(({ data, error }) => {
+          if (!error && data) setItems(data as unknown as TickerItem[]);
+          // Fallback to listings if bid_events empty (pre-migration)
+          if ((!data || data.length === 0) && !error) {
+            supabase
+              .from("listings")
+              .select("id, title, target_url, current_bid, category_id, updated_at")
+              .eq("is_active", true)
+              .order("updated_at", { ascending: false })
+              .limit(10)
+              .then(({ data: fallback }) => {
+                if (fallback && fallback.length > 0) {
+                  setItems(
+                    fallback.map((f: { id: string; current_bid: number; target_url: string; category_id: string | null; title: string; updated_at: string }) => ({
+                      id: f.id,
+                      amount_cents: Math.round(Number(f.current_bid) * 100),
+                      listing_id: f.id,
+                      created_at: f.updated_at,
+                      listings: { target_url: f.target_url, category_id: f.category_id, title: f.title },
+                    }))
+                  );
+                }
+              });
+          }
         });
-    void fetch();
-    const channel = supabase
-      .channel("ticker")
-      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => void fetch())
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    void fetchTicker();
+    const ch = supabase.channel("ticker").on("postgres_changes", { event: "*", schema: "public", table: "bid_events" }, () => void fetchTicker()).subscribe();
+    return () => { void supabase.removeChannel(ch); };
   }, []);
 
   if (items.length === 0) return null;
 
-  // Reduced-motion: static vertical list
   if (reduced) {
     return (
       <div className="border-y border-white/[0.06] bg-track px-4 py-3 sm:px-6">
@@ -51,8 +66,8 @@ export default function BidTicker() {
         <ul className="mt-2 space-y-1">
           {items.slice(0, 5).map((it) => (
             <li key={it.id} className="font-data text-xs tracking-wide text-paper/40">
-              {it.target_url} — <span className="font-bold text-paper">${Number(it.current_bid).toFixed(2)}</span>
-              {it.category_id && <span className="text-paper/25"> in {categoryById(it.category_id)?.name}</span>}
+              {it.listings?.target_url ?? it.listing_id} — <span className="font-bold text-paper">${(it.amount_cents / 100).toFixed(2)}</span>
+              {it.listings?.category_id && <span className="text-paper/25"> in {categoryById(it.listings.category_id)?.name}</span>}
             </li>
           ))}
         </ul>
@@ -61,27 +76,15 @@ export default function BidTicker() {
   }
 
   const loop = [...items, ...items];
-
   return (
-    <div
-      className="relative overflow-hidden border-y border-white/[0.06] bg-track py-2"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-      role="marquee"
-      aria-label="Recent bids"
-    >
-      <div
-        className="flex w-max gap-8 motion-safe:animate-[ticker_30s_linear_infinite]"
-        style={{ animationPlayState: paused ? "paused" : "running" }}
-      >
+    <div className="relative overflow-hidden border-y border-white/[0.06] bg-track py-2" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} role="marquee" aria-label="Recent bids">
+      <div className="flex w-max gap-8 motion-safe:animate-[ticker_30s_linear_infinite]" style={{ animationPlayState: paused ? "paused" : "running" }}>
         {loop.map((it, i) => (
           <span key={`${it.id}-${i}`} className="flex shrink-0 items-center gap-2 font-data text-[11px] tracking-wide text-paper/35 sm:text-xs">
-            <span className="text-paper/60">{it.target_url}</span>
+            <span className="text-paper/60">{it.listings?.target_url ?? it.listing_id}</span>
             <span className="text-white/15">—</span>
-            <span className="font-bold text-signal">${Number(it.current_bid).toFixed(2)}</span>
-            {it.category_id && <span className="hidden text-paper/20 sm:inline">in {categoryById(it.category_id)?.name}</span>}
+            <span className="font-bold text-signal">${(it.amount_cents / 100).toFixed(2)}</span>
+            {it.listings?.category_id && <span className="hidden text-paper/20 sm:inline">in {categoryById(it.listings.category_id)?.name}</span>}
             <span className="mx-1 text-white/8">·</span>
           </span>
         ))}
