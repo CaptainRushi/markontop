@@ -35,8 +35,10 @@ function useBannerTexture(url: string | null): Texture | null {
     loader.load(url, (t) => {
       if (dead) return void t.dispose();
       t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 4;
+      t.anisotropy = 8;
       t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.magFilter = THREE.LinearFilter;
+      t.generateMipmaps = true;
       setTex(t);
     }, undefined, () => setTex(null));
     return () => { dead = true; };
@@ -72,8 +74,8 @@ function SponsorWall() {
   }, []);
   return (
     <mesh position={[0, 1.8, -2.2]}>
-      <planeGeometry args={[20, 5]} />
-      <meshStandardMaterial map={texture} roughness={0.9} metalness={0.02} envMapIntensity={0.35} transparent opacity={0.95} />
+      <planeGeometry args={[22, 5.5]} />
+      <meshStandardMaterial map={texture} roughness={0.88} metalness={0.04} envMapIntensity={0.55} transparent opacity={0.98} />
     </mesh>
   );
 }
@@ -163,14 +165,14 @@ function Riser({
 
   // Fix 2: exact PBR numbers per spec
   const riserMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#1a1a1a", metalness: 0.7, roughness: 0.35, envMapIntensity: 1.2,
+    color: "#14181d", metalness: 0.72, roughness: 0.32, envMapIntensity: 1.25,
   }), []);
   const faceMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: MEDAL[rank], metalness: 0.9, roughness: 0.2, envMapIntensity: 1.4,
+    color: MEDAL[rank], metalness: 0.92, roughness: 0.18, envMapIntensity: 1.5,
   }), [rank]);
   const bannerMat = useMemo(() => {
-    if (tex) return new THREE.MeshStandardMaterial({ map: tex, metalness: 0, roughness: 0.6 });
-    return new THREE.MeshStandardMaterial({ color: "#1a1e24", roughness: 0.85, metalness: 0 });
+    if (tex) return new THREE.MeshStandardMaterial({ map: tex, metalness: 0, roughness: 0.58, envMapIntensity: 0.3 });
+    return new THREE.MeshStandardMaterial({ color: "#1a1e24", roughness: 0.88, metalness: 0 });
   }, [tex]);
   useEffect(() => { if (tex) (bannerMat as THREE.MeshStandardMaterial).map = tex; bannerMat.needsUpdate = true; }, [tex, bannerMat]);
 
@@ -208,23 +210,29 @@ function Riser({
   return (
     <group ref={group} position={[x, -0.62, 0]}>
       <mesh position={[0, h + 0.03, 0]}>
-        <boxGeometry args={[2.12, 0.05, 2.12]} />
-        <meshStandardMaterial color={MEDAL[rank]} roughness={0.3} metalness={0.5} emissive={MEDAL[rank]} emissiveIntensity={0.06} />
+        <boxGeometry args={[2.14, 0.06, 2.14]} />
+        <meshStandardMaterial color={MEDAL[rank]} roughness={0.28} metalness={0.55} emissive={MEDAL[rank]} emissiveIntensity={0.08} />
       </mesh>
-      {/* Fix 2: riser body uses 0.7/0.35 */}
       <mesh ref={block} position={[0, h / 2, 0]} material={riserMat} castShadow receiveShadow>
         <boxGeometry args={[2, 1, 2]} />
       </mesh>
-      {/* Numbered face insert — Fix 2: 0.9/0.2 */}
-      <mesh position={[0, 0.28, 1.015]} material={faceMat}>
+      {/* Bevel edge highlight */}
+      <mesh position={[0, h / 2, 0]}>
+        <boxGeometry args={[2.02, h * 0.98, 2.02]} />
+        <meshBasicMaterial color={MEDAL[rank]} transparent opacity={0.04} wireframe />
+      </mesh>
+      <mesh position={[0, 0.28, 1.018]} material={faceMat}>
         <planeGeometry args={[1.9, 0.52]} />
       </mesh>
-      {/* Number glyph on face */}
-      <mesh position={[0, 0.28, 1.016]} material={numberMat}>
+      <mesh position={[0, 0.28, 1.021]} material={numberMat}>
         <planeGeometry args={[0.42, 0.42]} />
       </mesh>
-      {/* Banner — Fix 2: 0/0.6 matte */}
-      <mesh ref={bannerRef} position={[0, h / 2 + 0.18, 1.02]} material={bannerMat} visible={hasListing}>
+      {/* Banner with frame */}
+      <mesh position={[0, h / 2 + 0.18, 1.012]} visible={hasListing}>
+        <planeGeometry args={[1.88, 0.94]} />
+        <meshBasicMaterial color="#0a0c0e" />
+      </mesh>
+      <mesh ref={bannerRef} position={[0, h / 2 + 0.18, 1.025]} material={bannerMat} visible={hasListing}>
         <planeGeometry args={[1.82, 0.88]} />
       </mesh>
       <pointLight position={[0, h * 0.55, -0.8]} intensity={hasListing ? 18 : 6} color={MEDAL[rank]} distance={3.5} decay={2} />
@@ -283,7 +291,7 @@ export default function PodiumScene({ top3 }: { top3: Array<Listing & { rank: nu
       camera={{ position: [0, 2.4, 8.8], fov: 40 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       className="!touch-none"
-      onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.15; }}
+      onCreated={({ gl, scene }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.28; scene.fog = new THREE.Fog("#0B0D10", 9, 18); }}
     >
       <color attach="background" args={["#0B0D10"]} />
 
@@ -291,31 +299,30 @@ export default function PodiumScene({ top3 }: { top3: Array<Listing & { rank: nu
       <Environment preset="city" environmentIntensity={1.1} />
 
       {/* Fix 3: soft shadows, 2048 key light */}
-      <directionalLight position={[4, 8, 4]} intensity={2.5} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} />
-      {/* Floods */}
-      <spotLight position={[0, 8, 3]} angle={0.38} penumbra={0.55} intensity={120} color="#FFF8E8" castShadow shadow-mapSize={[1024, 1024]} />
-      <spotLight position={[-3.2, 7, 2]} angle={0.36} penumbra={0.65} intensity={75} color="#E8F0FF" />
-      <spotLight position={[3.2, 7, 2]} angle={0.36} penumbra={0.65} intensity={70} color="#E8F0FF" />
-      <spotLight position={[0, 4, -4]} angle={0.9} penumbra={0.8} intensity={45} color="#FFC72C" />
-      <ambientLight intensity={0.18} color="#F2F5F8" />
-      <directionalLight position={[-5, 3, -5]} intensity={0.12} color="#8aa0c2" />
+      <directionalLight position={[4, 8, 4]} intensity={2.8} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-camera-near={0.5} shadow-camera-far={22} />
+      <spotLight position={[0, 8, 3]} angle={0.36} penumbra={0.5} intensity={145} color="#FFF8E8" castShadow shadow-mapSize={[1024, 1024]} decay={1.2} />
+      <spotLight position={[-3.2, 7, 2]} angle={0.34} penumbra={0.6} intensity={85} color="#E8F0FF" />
+      <spotLight position={[3.2, 7, 2]} angle={0.34} penumbra={0.6} intensity={80} color="#E8F0FF" />
+      <spotLight position={[0, 4, -4]} angle={0.9} penumbra={0.78} intensity={52} color="#FFC72C" />
+      <ambientLight intensity={0.22} color="#F2F5F8" />
+      <directionalLight position={[-5, 3, -5]} intensity={0.14} color="#8aa0c2" />
 
       <SponsorWall />
 
-      {/* Floor — Fix: MeshReflectorMaterial for real reflection */}
+      {/* Floor — MeshReflector for venue reflection */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.635, 0]} receiveShadow>
-        <planeGeometry args={[22, 12]} />
+        <planeGeometry args={[24, 14]} />
         <MeshReflectorMaterial
-          blur={[300, 100]}
+          blur={[400, 120]}
           resolution={1024}
-          mixBlur={1}
-          mixStrength={18}
-          roughness={0.32}
-          depthScale={0.8}
-          minDepthThreshold={0.4}
-          maxDepthThreshold={1.2}
-          color="#0e1115"
-          metalness={0.22}
+          mixBlur={0.9}
+          mixStrength={28}
+          roughness={0.26}
+          depthScale={1.1}
+          minDepthThreshold={0.35}
+          maxDepthThreshold={1.35}
+          color="#0a0d11"
+          metalness={0.28}
         />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.625, 0]}>
@@ -333,11 +340,10 @@ export default function PodiumScene({ top3 }: { top3: Array<Listing & { rank: nu
       <AmbientParticles enabled={!reducedMotion} />
       <DriftCam enabled={!reducedMotion} />
 
-      {/* Fix 4: post-processing — stays ON under reduced motion (quality, not motion) */}
       <EffectComposer enableNormalPass={false}>
-        <N8AO intensity={2} aoRadius={0.5} />
-        <Bloom luminanceThreshold={0.85} luminanceSmoothing={0.9} intensity={0.6} mipmapBlur />
-        <Vignette eskil={false} offset={0.15} darkness={0.6} />
+        <N8AO intensity={2.2} aoRadius={0.55} quality="performance" />
+        <Bloom luminanceThreshold={0.82} luminanceSmoothing={0.88} intensity={0.72} mipmapBlur radius={0.35} />
+        <Vignette eskil={false} offset={0.14} darkness={0.52} />
       </EffectComposer>
     </Canvas>
   );
