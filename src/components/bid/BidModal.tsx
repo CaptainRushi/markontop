@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, UploadCloud, X } from "lucide-react";
@@ -104,7 +104,7 @@ export default function BidModal({ open, onClose }: Props) {
     const rank = previewRank(n, board);
     if (isUpgrade) {
       const diff = Math.max(0, n - Number(existing!.current_bid));
-      return `Raise to $${n.toFixed(2)} — pay $${diff.toFixed(2)} difference · Lands at #${rank}`;
+      return `Raise to $${n.toFixed(2)} â€” pay $${diff.toFixed(2)} difference Â· Lands at #${rank}`;
     }
     if (n < minBid - 0.001) return `Minimum for this slot is $${minBid.toFixed(2)}`;
     if (rank <= 3) return `Takes #${rank} at $${n.toFixed(2)}`;
@@ -171,7 +171,7 @@ export default function BidModal({ open, onClose }: Props) {
   if (confirmed) {
     return (
       <div className="fixed inset-0 z-50 flex overflow-y-auto bg-track/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-        <div className="m-auto w-full max-w-sm bg-paper p-6 text-center text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
+        <div className="m-auto w-full max-w-md rounded-xl border border-black/10 bg-paper p-8 text-center text-track shadow-[0_32px_90px_rgba(0,0,0,0.55)]">
           <p className="font-display text-lg font-black" style={{ fontStretch: "condensed" }}>Placed at #{confirmed.rank} in {confirmed.category}.</p>
           <div className="mt-4 flex gap-2">
             <a href="/" className="flex-1 bg-track px-4 py-2.5 text-center text-sm font-bold text-paper hover:bg-track/90">View leaderboard</a>
@@ -192,12 +192,12 @@ export default function BidModal({ open, onClose }: Props) {
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       onKeyDown={onKeyDown}
     >
-      <div className="m-auto flex max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden bg-paper text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
-        <div className="flex items-center justify-between border-b border-track/10 px-6 py-4">
-          <h2 className="font-display text-lg font-black tracking-tight" style={{ fontStretch: "condensed" }}>Place your bid</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-track/40 hover:text-track"><X className="h-5 w-5" /></button>
+      <div className="m-auto flex max-h-[92dvh] w-full max-w-[640px] flex-col overflow-hidden rounded-xl border border-black/10 bg-paper text-track shadow-[0_32px_90px_rgba(0,0,0,0.55)]">
+        <div className="flex items-center justify-between border-b border-track/10 px-7 py-5">
+          <h2 className="font-display text-xl font-black tracking-tight" style={{ fontStretch: "condensed" }}>Place your bid</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 text-track/40 transition-colors hover:text-track"><X className="h-5 w-5" /></button>
         </div>
-        <div className="flex items-center gap-2 px-6 pt-4">
+        <div className="flex items-center gap-2 px-7 pt-5">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${step >= s ? "bg-track text-paper" : "border border-track/15 text-track/30"}`}>{s}</span>
@@ -207,25 +207,25 @@ export default function BidModal({ open, onClose }: Props) {
           <span className="ml-2 font-data text-xs tracking-wide text-track/40">{step === 1 ? "Details" : step === 2 ? "Amount" : "Payment"}</span>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-[320px] flex-1 overflow-y-auto px-7 py-6">
           {step === 1 && (
             <div className="space-y-4">
-              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Listing title</label><input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required placeholder="Acme Analytics" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" /></div>
-              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Target URL</label><input value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} onBlur={(e) => void checkUrl(e.target.value)} required placeholder="https://example.com" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" />{checkingUrl && <p className="mt-1 flex items-center gap-1 font-data text-xs text-track/40"><Loader2 className="h-3 w-3 animate-spin" /> Checking board…</p>}{existing && <p className="mt-2 border-l-2 border-gold bg-gold/10 px-3 py-2 text-xs leading-relaxed text-track/70">{isUpgrade ? <>Your listing at <span className="font-data font-bold">${Number(existing.current_bid).toFixed(2)}</span> — you only pay the difference.</> : <>Taken at <span className="font-data font-bold">${Number(existing.current_bid).toFixed(2)}</span> — minimum is <span className="font-data font-bold">${minBid.toFixed(2)}</span>.</>}</p>}</div>
-              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Category — fixed after submission</label><select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track focus:border-gold focus:outline-none"><option value="">Select…</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-              <div><span className="mb-1 block text-xs font-medium tracking-wide text-track/60">Banner — podium aspect preview (600×300)</span><label className="flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-track/20 bg-white px-4 py-6 text-center hover:border-gold/60">{uploading ? <><Loader2 className="h-5 w-5 animate-spin text-track/40" /><span className="text-xs text-track/40">Uploading…</span></> : bannerUrl ? <><span className="font-data text-xs font-bold text-signal">Banner ready</span><div className="mt-1 max-h-20 w-full max-w-[220px] overflow-hidden rounded border border-track/10" style={{ aspectRatio: "2 / 1" }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={bannerUrl} alt="Preview" className="h-full w-full object-cover" /></div></> : <><UploadCloud className="h-5 w-5 text-track/30" /><span className="text-xs text-track/40">Drop image or click — max 3 MB</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleBanner(f); }} /></label></div>
-              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Email — for receipts & My Rank</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" /></div>
+              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Listing title</label><input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required placeholder="Acme Analytics" className="w-full border border-track/15 bg-white px-3.5 py-2.5 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none rounded-md" /></div>
+              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Target URL</label><input value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} onBlur={(e) => void checkUrl(e.target.value)} required placeholder="https://example.com" className="w-full border border-track/15 bg-white px-3.5 py-2.5 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none rounded-md" />{checkingUrl && <p className="mt-1 flex items-center gap-1 font-data text-xs text-track/40"><Loader2 className="h-3 w-3 animate-spin" /> Checking boardâ€¦</p>}{existing && <p className="mt-2 border-l-2 border-gold bg-gold/10 px-3 py-2 text-xs leading-relaxed text-track/70">{isUpgrade ? <>Your listing at <span className="font-data font-bold">${Number(existing.current_bid).toFixed(2)}</span> â€” you only pay the difference.</> : <>Taken at <span className="font-data font-bold">${Number(existing.current_bid).toFixed(2)}</span> â€” minimum is <span className="font-data font-bold">${minBid.toFixed(2)}</span>.</>}</p>}</div>
+              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Category â€” fixed after submission</label><select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="w-full border border-track/15 bg-white px-3.5 py-2.5 text-sm text-track focus:border-gold focus:outline-none rounded-md"><option value="">Selectâ€¦</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+              <div><span className="mb-1 block text-xs font-medium tracking-wide text-track/60">Banner â€” podium aspect preview (600Ã—300)</span><label className="flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-track/20 bg-white px-4 py-6 text-center hover:border-gold/60">{uploading ? <><Loader2 className="h-5 w-5 animate-spin text-track/40" /><span className="text-xs text-track/40">Uploadingâ€¦</span></> : bannerUrl ? <><span className="font-data text-xs font-bold text-signal">Banner ready</span><div className="mt-1 max-h-20 w-full max-w-[220px] overflow-hidden rounded border border-track/10" style={{ aspectRatio: "2 / 1" }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={bannerUrl} alt="Preview" className="h-full w-full object-cover" /></div></> : <><UploadCloud className="h-5 w-5 text-track/30" /><span className="text-xs text-track/40">Drop image or click â€” max 3 MB</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleBanner(f); }} /></label></div>
+              <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Email â€” for receipts & My Rank</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" className="w-full border border-track/15 bg-white px-3.5 py-2.5 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none rounded-md" /></div>
             </div>
           )}
           {step === 2 && (
             <div className="space-y-4">
-              <div><label htmlFor="bm-bid" className="mb-1 block text-xs font-medium tracking-wide text-track/60">Your bid</label><div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-data text-sm text-track/30">$</span><input id="bm-bid" type="number" step="0.01" min={minBid} value={bidTarget} onChange={(e) => setBidTarget(e.target.value)} required className="w-full border border-track/15 bg-white py-2 pl-7 pr-3 font-data text-lg font-bold tabular-nums text-track focus:border-gold focus:outline-none" /></div>{previewLine && <p className="mt-2 font-data text-xs tabular-nums text-track/50">{previewLine}</p>}<p className="mt-3 border-l-2 border-gold bg-gold/10 px-3 py-2 font-data text-xs text-track/60">Minimum for this slot: <span className="font-bold text-track">${minBid.toFixed(2)}</span></p></div>
+              <div><label htmlFor="bm-bid" className="mb-1 block text-xs font-medium tracking-wide text-track/60">Your bid</label><div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-data text-sm text-track/30">$</span><input id="bm-bid" type="number" step="0.01" min={minBid} value={bidTarget} onChange={(e) => setBidTarget(e.target.value)} required className="w-full border border-track/15 bg-white py-3 pl-8 pr-4 font-data text-xl font-bold tabular-nums text-track focus:border-gold focus:outline-none" /></div>{previewLine && <p className="mt-2 font-data text-xs tabular-nums text-track/50">{previewLine}</p>}<p className="mt-3 border-l-2 border-gold bg-gold/10 px-3 py-2 font-data text-xs text-track/60">Minimum for this slot: <span className="font-bold text-track">${minBid.toFixed(2)}</span></p></div>
             </div>
           )}
           {step === 3 && (
             <div className="space-y-4">
               {!clientSecret ? (
-                <p className="font-data text-xs text-track/40">Preparing payment…</p>
+                <p className="font-data text-xs text-track/40">Preparing paymentâ€¦</p>
               ) : stripePromise ? (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
                   <BidPaymentStep
@@ -240,14 +240,14 @@ export default function BidModal({ open, onClose }: Props) {
                 <p className="border-l-2 border-flag bg-flag/10 px-3 py-2 font-data text-xs text-flag">Stripe publishable key not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in .env.local and restart.</p>
               )}
               <div className="border border-track/10 bg-white p-3 font-data text-xs text-track/60">
-                <span className="font-bold text-track">${parseFloat(bidTarget || "0").toFixed(2)}</span> — {previewLine}
+                <span className="font-bold text-track">${parseFloat(bidTarget || "0").toFixed(2)}</span> â€” {previewLine}
               </div>
             </div>
           )}
           {error && <p role="alert" className="mt-4 border-l-2 border-flag bg-flag/10 px-3 py-2 text-xs leading-relaxed text-flag">{error}</p>}
         </div>
 
-        <div className="flex gap-2 border-t border-track/10 px-6 py-4">
+        <div className="flex gap-2 border-t border-track/10 px-7 py-5">
           {step > 1 && step < 3 && <button onClick={() => setStep((s) => (s - 1) as Step)} className="border border-track/15 px-4 py-2.5 text-sm font-medium text-track hover:bg-black/5">Back</button>}
           {step === 3 && clientSecret && <button onClick={() => setStep(2)} className="border border-track/15 px-4 py-2.5 text-sm font-medium text-track hover:bg-black/5">Back</button>}
           <div className="flex-1" />
