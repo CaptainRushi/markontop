@@ -168,8 +168,8 @@ export default function BidModal({ open, onClose }: Props) {
 
   if (confirmed) {
     return (
-      <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-track/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-        <div className="my-auto w-full max-w-sm bg-paper p-6 text-center text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
+      <div className="fixed inset-0 z-50 flex overflow-y-auto bg-track/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+        <div className="m-auto w-full max-w-sm bg-paper p-6 text-center text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
           <p className="font-display text-lg font-black" style={{ fontStretch: "condensed" }}>Placed at #{confirmed.rank} in {confirmed.category}.</p>
           <div className="mt-4 flex gap-2">
             <a href="/" className="flex-1 bg-track px-4 py-2.5 text-center text-sm font-bold text-paper hover:bg-track/90">View leaderboard</a>
@@ -183,14 +183,14 @@ export default function BidModal({ open, onClose }: Props) {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-track/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex overflow-y-auto bg-track/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Place a bid"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       onKeyDown={onKeyDown}
     >
-      <div className="my-auto flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden bg-paper text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
+      <div className="m-auto flex max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden bg-paper text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
         <div className="flex items-center justify-between border-b border-track/10 px-6 py-4">
           <h2 className="font-display text-lg font-black tracking-tight" style={{ fontStretch: "condensed" }}>Place your bid</h2>
           <button onClick={onClose} aria-label="Close" className="p-1 text-track/40 hover:text-track"><X className="h-5 w-5" /></button>
@@ -205,7 +205,7 @@ export default function BidModal({ open, onClose }: Props) {
           <span className="ml-2 font-data text-xs tracking-wide text-track/40">{step === 1 ? "Details" : step === 2 ? "Amount" : "Payment"}</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {step === 1 && (
             <div className="space-y-4">
               <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Listing title</label><input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required placeholder="Acme Analytics" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" /></div>

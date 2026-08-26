@@ -85,14 +85,14 @@ export default function BidUpModal({ listing, onClose }: Props) {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-track/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex overflow-y-auto bg-track/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Raise your placement"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       onKeyDown={onKeyDown}
     >
-      <div className="my-auto w-full max-w-sm bg-paper p-6 text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]" onClick={(e) => e.stopPropagation()}>
+      <div className="m-auto w-full max-w-sm bg-paper p-6 text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-base font-black tracking-tight text-track">Raise your bid</h2>
           <button onClick={onClose} aria-label="Close" className="p-1 text-track/40 hover:text-track">
