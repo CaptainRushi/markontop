@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, ExternalLink, Flag } from "lucide-react";
 import type { Listing } from "@/lib/types";
 
 interface Props {
@@ -34,7 +35,7 @@ export default function LeaderboardList({ listings, loading, rankOffset, page, p
         <ul className="divide-y divide-white/[0.06]">
           {listings.map((l, i) => (
             <li key={l.id} className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/[0.03] sm:gap-4 sm:px-5 sm:py-3.5">
-              <span className="w-8 shrink-0 text-right font-data text-[13px] font-bold tabular-nums text-paper/30 sm:w-10 sm:text-sm">#{rankOffset + i}</span>
+              <span className="w-8 shrink-0 text-right font-display text-[14px] font-black tabular-nums text-paper/30 sm:w-10 sm:text-[15px]" style={{ fontStretch: "condensed" }}>#{rankOffset + i}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={l.banner_url} alt="" aria-hidden className="h-9 w-[72px] shrink-0 object-cover sm:h-10 sm:w-[84px]" style={{ borderRadius: 4 }} />
               <div className="min-w-0 flex-1">
@@ -50,6 +51,7 @@ export default function LeaderboardList({ listings, loading, rankOffset, page, p
                 <p className="truncate font-data text-[11px] tracking-wide text-paper/25">{l.target_url}</p>
               </div>
               <span className="shrink-0 font-data text-[14px] font-bold tabular-nums text-paper sm:text-[15px]">${Number(l.current_bid).toFixed(2)}</span>
+              <ReportButton listingId={l.id} />
             </li>
           ))}
         </ul>
@@ -77,5 +79,32 @@ export default function LeaderboardList({ listings, loading, rankOffset, page, p
         </div>
       )}
     </div>
+  );
+}
+
+function ReportButton({ listingId }: { listingId: string }) {
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function report() {
+    if (done || busy) return;
+    setBusy(true);
+    const res = await fetch("/api/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listing_id: listingId, reason: "user_report" }),
+    });
+    if (res.ok) setDone(true);
+    setBusy(false);
+  }
+  return (
+    <button
+      onClick={() => void report()}
+      disabled={done || busy}
+      aria-label="Report listing"
+      title={done ? "Reported" : "Report listing"}
+      className={`hidden shrink-0 p-1.5 transition-colors sm:flex ${done ? "text-signal" : "text-paper/20 hover:text-flag"}`}
+    >
+      <Flag className="h-3.5 w-3.5" />
+    </button>
   );
 }

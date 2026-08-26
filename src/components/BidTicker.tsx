@@ -77,14 +77,23 @@ export default function BidTicker() {
 
   const loop = [...items, ...items];
   return (
-    <div className="relative overflow-hidden border-y border-white/[0.06] bg-track py-2" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} role="marquee" aria-label="Recent bids">
+    <div
+      className="relative overflow-hidden border-y border-white/[0.06] bg-track py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      tabIndex={0}
+      role="region"
+      aria-live="polite"
+      aria-label="Recent bids"
+    >
       <div className="flex w-max gap-8 motion-safe:animate-[ticker_30s_linear_infinite]" style={{ animationPlayState: paused ? "paused" : "running" }}>
         {loop.map((it, i) => (
           <span key={`${it.id}-${i}`} className="flex shrink-0 items-center gap-2 font-data text-[11px] tracking-wide text-paper/35 sm:text-xs">
-            <span className="text-paper/60">{it.listings?.target_url ?? it.listing_id}</span>
+            <span className="text-paper/60">{categoryById(it.listings?.category_id)?.name ?? "Board"} · {it.listings?.title ?? it.listing_id}</span>
             <span className="text-white/15">—</span>
             <span className="font-bold text-signal">${(it.amount_cents / 100).toFixed(2)}</span>
-            {it.listings?.category_id && <span className="hidden text-paper/20 sm:inline">in {categoryById(it.listings.category_id)?.name}</span>}
             <span className="mx-1 text-white/8">·</span>
           </span>
         ))}

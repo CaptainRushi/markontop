@@ -7,7 +7,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CATEGORIES, ENTRY_FLOOR, TAKEOVER_INCREMENT } from "@/lib/categories";
 import { isValidNormalizedUrl, normalizeUrl } from "@/lib/url";
-import { minimumBidTarget } from "@/lib/ranking";
+import { minimumBidTarget, previewRank } from "@/lib/ranking";
 import BidPaymentStep from "./BidPaymentStep";
 
 const MAX_BANNER_BYTES = 3 * 1024 * 1024;
@@ -37,6 +37,17 @@ export default function BidModal({ open, onClose }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [creatingIntent, setCreatingIntent] = useState(false);
   const [confirmed, setConfirmed] = useState<{ rank: number; category: string } | null>(null);
+  const [board, setBoard] = useState<Array<{ id: string; current_bid: number; created_at: string }>>([]);
+
+  useEffect(() => {
+    if (!categoryId) return void setBoard([]);
+    void getSupabaseBrowserClient()
+      .from("listings")
+      .select("id, current_bid, created_at")
+      .eq("category_id", categoryId)
+      .eq("is_active", true)
+      .then(({ data }) => setBoard((data ?? []) as typeof board));
+  }, [categoryId]);
 
   useEffect(() => {
     if (open) {
@@ -49,8 +60,26 @@ export default function BidModal({ open, onClose }: Props) {
     if (!open) return;
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
+    // Focus first input
+    const t = setTimeout(() => {
+      const el = overlayRef.current?.querySelector<HTMLElement>("input, select, button");
+      el?.focus();
+    }, 30);
+    return () => { window.removeEventListener("keydown", h); clearTimeout(t); };
   }, [open, onClose]);
+
+  // Focus trap: cycle Tab within modal
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const root = overlayRef.current;
+    if (!root) return;
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"));
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
 
   if (!open) return null;
 
@@ -70,12 +99,14 @@ export default function BidModal({ open, onClose }: Props) {
   const previewLine = (() => {
     const n = parseFloat(bidTarget);
     if (!n || Number.isNaN(n)) return null;
+    const rank = previewRank(n, board);
     if (isUpgrade) {
       const diff = Math.max(0, n - Number(existing!.current_bid));
-      return `Raise to $${n.toFixed(2)} — pay $${diff.toFixed(2)} difference`;
+      return `Raise to $${n.toFixed(2)} — pay $${diff.toFixed(2)} difference · Lands at #${rank}`;
     }
-    if (existing) return `Takes slot at $${n.toFixed(2)} — pay full amount`;
-    return `Lands on the board at $${n.toFixed(2)}`;
+    if (n < minBid - 0.001) return `Minimum for this slot is $${minBid.toFixed(2)}`;
+    if (rank <= 3) return `Takes #${rank} at $${n.toFixed(2)}`;
+    return `Lands at #${rank} for $${n.toFixed(2)}`;
   })();
 
   async function checkUrl(url: string) {
@@ -150,7 +181,15 @@ export default function BidModal({ open, onClose }: Props) {
   }
 
   return (
-    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-track/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Place a bid" onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}>
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-track/80 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Place a bid"
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      onKeyDown={onKeyDown}
+    >
       <div className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden bg-paper text-track">
         <div className="flex items-center justify-between border-b border-track/10 px-6 py-4">
           <h2 className="font-display text-lg font-black tracking-tight" style={{ fontStretch: "condensed" }}>Place your bid</h2>
@@ -172,7 +211,7 @@ export default function BidModal({ open, onClose }: Props) {
               <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Listing title</label><input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required placeholder="Acme Analytics" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" /></div>
               <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Target URL</label><input value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} onBlur={(e) => void checkUrl(e.target.value)} required placeholder="https://example.com" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" />{checkingUrl && <p className="mt-1 flex items-center gap-1 font-data text-xs text-track/40"><Loader2 className="h-3 w-3 animate-spin" /> Checking board…</p>}{existing && <p className="mt-2 border-l-2 border-gold bg-gold/10 px-3 py-2 text-xs leading-relaxed text-track/70">{isUpgrade ? <>Your listing at <span className="font-data font-bold">${Number(existing.current_bid).toFixed(2)}</span> — you only pay the difference.</> : <>Taken at <span className="font-data font-bold">${Number(existing.current_bid).toFixed(2)}</span> — minimum is <span className="font-data font-bold">${minBid.toFixed(2)}</span>.</>}</p>}</div>
               <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Category — fixed after submission</label><select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track focus:border-gold focus:outline-none"><option value="">Select…</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-              <div><span className="mb-1 block text-xs font-medium tracking-wide text-track/60">Banner — podium aspect preview</span><label className="flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-track/20 bg-white px-4 py-6 text-center hover:border-gold/60">{uploading ? <><Loader2 className="h-5 w-5 animate-spin text-track/40" /><span className="text-xs text-track/40">Uploading…</span></> : bannerUrl ? <><span className="font-data text-xs font-bold text-signal">Banner ready</span>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={bannerUrl} alt="Preview" className="mt-1 max-h-20 w-auto object-cover" /></> : <><UploadCloud className="h-5 w-5 text-track/30" /><span className="text-xs text-track/40">Drop image or click — max 3 MB</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleBanner(f); }} /></label></div>
+              <div><span className="mb-1 block text-xs font-medium tracking-wide text-track/60">Banner — podium aspect preview (600×300)</span><label className="flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-track/20 bg-white px-4 py-6 text-center hover:border-gold/60">{uploading ? <><Loader2 className="h-5 w-5 animate-spin text-track/40" /><span className="text-xs text-track/40">Uploading…</span></> : bannerUrl ? <><span className="font-data text-xs font-bold text-signal">Banner ready</span><div className="mt-1 max-h-20 w-full max-w-[220px] overflow-hidden rounded border border-track/10" style={{ aspectRatio: "2 / 1" }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={bannerUrl} alt="Preview" className="h-full w-full object-cover" /></div></> : <><UploadCloud className="h-5 w-5 text-track/30" /><span className="text-xs text-track/40">Drop image or click — max 3 MB</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleBanner(f); }} /></label></div>
               <div><label className="mb-1 block text-xs font-medium tracking-wide text-track/60">Email — for receipts & My Rank</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" className="w-full border border-track/15 bg-white px-3 py-2 text-sm text-track placeholder:text-track/30 focus:border-gold focus:outline-none" /></div>
             </div>
           )}
@@ -187,7 +226,13 @@ export default function BidModal({ open, onClose }: Props) {
                 <p className="font-data text-xs text-track/40">Preparing payment…</p>
               ) : stripePromise && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-                  <BidPaymentStep onSuccess={() => setConfirmed({ rank: 4, category: CATEGORIES.find((c) => c.id === categoryId)?.name ?? categoryId })} onError={(msg) => setError(msg)} />
+                  <BidPaymentStep
+                    onSuccess={() => {
+                      const r = previewRank(parseFloat(bidTarget || "0"), board);
+                      setConfirmed({ rank: r, category: CATEGORIES.find((c) => c.id === categoryId)?.name ?? categoryId });
+                    }}
+                    onError={(msg) => setError(msg)}
+                  />
                 </Elements>
               ) : (
                 <p className="border-l-2 border-flag bg-flag/10 px-3 py-2 font-data text-xs text-flag">Stripe publishable key not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.</p>

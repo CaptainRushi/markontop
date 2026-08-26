@@ -226,7 +226,9 @@ begin
   if v_listing_id is null then return; end if;
 
   update bid_events set status = 'refunded' where stripe_payment_intent_id = p_stripe_pi_id;
-  update listings set status = 'flagged', is_active = false where id = v_listing_id;
+  update listings set is_active = false where id = v_listing_id;
+  insert into listing_reviews (listing_id, status, reason) values (v_listing_id, 'flagged', 'chargeback')
+    on conflict (listing_id) do update set status = 'flagged', reason = 'chargeback', reviewed_at = now();
   delete from standings where listing_id = v_listing_id;
   -- Note: standing is removed, not recomputed. Ranks shift naturally via the
   -- category_rank index; no separate rank column to patch.

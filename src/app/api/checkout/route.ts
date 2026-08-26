@@ -5,6 +5,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { computeChargeAmount } from "@/lib/ranking";
 import { isValidNormalizedUrl, normalizeUrl } from "@/lib/url";
 import { CATEGORIES } from "@/lib/categories";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,9 @@ interface CheckoutBody {
  * The webhook (not this route) applies the bid after payment succeeds.
  */
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = rateLimit(`checkout:${ip}`, 10, 60_000);
+  if (!rl.ok) return NextResponse.json({ error: "Too many requests. Try again shortly." }, { status: 429 });
   try {
     const body = (await req.json()) as CheckoutBody;
 
