@@ -168,8 +168,8 @@ export default function BidModal({ open, onClose }: Props) {
 
   if (confirmed) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-track/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-        <div className="w-full max-w-sm bg-paper p-6 text-center text-track">
+      <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-track/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+        <div className="my-auto w-full max-w-sm bg-paper p-6 text-center text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
           <p className="font-display text-lg font-black" style={{ fontStretch: "condensed" }}>Placed at #{confirmed.rank} in {confirmed.category}.</p>
           <div className="mt-4 flex gap-2">
             <a href="/" className="flex-1 bg-track px-4 py-2.5 text-center text-sm font-bold text-paper hover:bg-track/90">View leaderboard</a>
@@ -183,14 +183,14 @@ export default function BidModal({ open, onClose }: Props) {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-track/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-track/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Place a bid"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       onKeyDown={onKeyDown}
     >
-      <div className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden bg-paper text-track">
+      <div className="my-auto flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden bg-paper text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
         <div className="flex items-center justify-between border-b border-track/10 px-6 py-4">
           <h2 className="font-display text-lg font-black tracking-tight" style={{ fontStretch: "condensed" }}>Place your bid</h2>
           <button onClick={onClose} aria-label="Close" className="p-1 text-track/40 hover:text-track"><X className="h-5 w-5" /></button>

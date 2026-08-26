@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 import type { Listing } from "@/lib/types";
@@ -14,9 +14,28 @@ interface Props {
 
 export default function BidUpModal({ listing, onClose }: Props) {
   const router = useRouter();
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [bidTarget, setBidTarget] = useState((Number(listing.current_bid) + 1).toFixed(2));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    document.body.style.overflow = "hidden";
+    const t = setTimeout(() => overlayRef.current?.querySelector<HTMLElement>("input")?.focus(), 30);
+    return () => { window.removeEventListener("keydown", h); document.body.style.overflow = ""; clearTimeout(t); };
+  }, [onClose]);
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const root = overlayRef.current; if (!root) return;
+    const els = Array.from(root.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])"));
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   // ponytail: full category board — small boards in v1
   const [board, setBoard] = useState<Array<{ id: string; current_bid: number; created_at: string }>>([]);
 
@@ -65,31 +84,33 @@ export default function BidUpModal({ listing, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
+      ref={overlayRef}
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-track/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Raise your placement"
-      onClick={onClose}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      onKeyDown={onKeyDown}
     >
-      <div className="w-full max-w-sm bg-paper p-6 text-ink" onClick={(e) => e.stopPropagation()}>
+      <div className="my-auto w-full max-w-sm bg-paper p-6 text-track shadow-[0_24px_64px_rgba(0,0,0,0.45)]" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-base font-black tracking-tight text-ink">Raise your bid</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-ink/40 hover:text-ink">
+          <h2 className="font-display text-base font-black tracking-tight text-track">Raise your bid</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1 text-track/40 hover:text-track">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="text-xs leading-relaxed text-ink/60">
+        <p className="text-xs leading-relaxed text-track/60">
           {listing.title}
           <br />
-          Current — <span className="font-data font-bold text-ink">${Number(listing.current_bid).toFixed(2)}</span> · you pay the difference only
+          Current — <span className="font-data font-bold text-track">${Number(listing.current_bid).toFixed(2)}</span> · you pay the difference only
         </p>
 
-        <label htmlFor="new-total" className="mt-4 mb-1 block text-xs font-medium tracking-wide text-ink/60">
+        <label htmlFor="new-total" className="mt-4 mb-1 block text-xs font-medium tracking-wide text-track/60">
           Your bid
         </label>
         <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-data text-sm text-ink/30">$</span>
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-data text-sm text-track/30">$</span>
           <input
             id="new-total"
             type="number"
@@ -97,18 +118,18 @@ export default function BidUpModal({ listing, onClose }: Props) {
             min={Number(listing.current_bid) + 0.01}
             value={bidTarget}
             onChange={(e) => setBidTarget(e.target.value)}
-            className="w-full border border-ink/15 bg-white py-2 pl-7 pr-3 font-data text-base font-bold tabular-nums text-ink focus:border-gold focus:outline-none"
+            className="w-full border border-track/15 bg-white py-2 pl-7 pr-3 font-data text-base font-bold tabular-nums text-track focus:border-gold focus:outline-none"
           />
         </div>
-        <p className="mt-1.5 font-data text-xs tabular-nums text-ink/40">
+        <p className="mt-1.5 font-data text-xs tabular-nums text-track/40">
           {listing.category_id && bidNum >= Number(listing.current_bid) + 0.01 ? (
             <>
               Takes #{previewRank(bidNum, board, listing.id)} at ${bidNum.toFixed(2)} — you pay{" "}
-              <span className="font-bold text-ink">${delta.toFixed(2)}</span>
+              <span className="font-bold text-track">${delta.toFixed(2)}</span>
             </>
           ) : (
             <>
-              You will be charged <span className="font-bold text-ink">${delta.toFixed(2)}</span>
+              You will be charged <span className="font-bold text-track">${delta.toFixed(2)}</span>
             </>
           )}
         </p>
@@ -122,7 +143,7 @@ export default function BidUpModal({ listing, onClose }: Props) {
         <button
           onClick={() => void go()}
           disabled={busy}
-          className="mt-5 flex w-full items-center justify-center gap-2 bg-ink px-4 py-3 text-sm font-bold tracking-wide text-paper hover:bg-ink-soft disabled:opacity-40"
+          className="mt-5 flex w-full items-center justify-center gap-2 bg-track px-4 py-3 text-sm font-bold tracking-wide text-paper hover:bg-track-soft disabled:opacity-40"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           Pay ${delta.toFixed(2)} & update
