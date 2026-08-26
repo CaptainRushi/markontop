@@ -11,7 +11,9 @@ import { minimumBidTarget, previewRank } from "@/lib/ranking";
 import BidPaymentStep from "./BidPaymentStep";
 
 const MAX_BANNER_BYTES = 3 * 1024 * 1024;
-const stripePromise = typeof window !== "undefined" ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "") : null;
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise =
+  typeof window !== "undefined" && publishableKey ? loadStripe(publishableKey) : null;
 
 interface Props {
   open: boolean;
@@ -224,7 +226,7 @@ export default function BidModal({ open, onClose }: Props) {
             <div className="space-y-4">
               {!clientSecret ? (
                 <p className="font-data text-xs text-track/40">Preparing payment…</p>
-              ) : stripePromise && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? (
+              ) : stripePromise ? (
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
                   <BidPaymentStep
                     onSuccess={() => {
@@ -235,7 +237,7 @@ export default function BidModal({ open, onClose }: Props) {
                   />
                 </Elements>
               ) : (
-                <p className="border-l-2 border-flag bg-flag/10 px-3 py-2 font-data text-xs text-flag">Stripe publishable key not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.</p>
+                <p className="border-l-2 border-flag bg-flag/10 px-3 py-2 font-data text-xs text-flag">Stripe publishable key not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in .env.local and restart.</p>
               )}
               <div className="border border-track/10 bg-white p-3 font-data text-xs text-track/60">
                 <span className="font-bold text-track">${parseFloat(bidTarget || "0").toFixed(2)}</span> — {previewLine}

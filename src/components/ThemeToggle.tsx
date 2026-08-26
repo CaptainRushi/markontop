@@ -5,13 +5,10 @@ import { Moon, Sun } from "lucide-react";
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const stored = localStorage.getItem("theme") as "dark" | "light" | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = stored ?? (prefersDark ? "dark" : "dark"); // default dark (track) per F1 direction
+    const initial = stored ?? "dark";
     setTheme(initial);
     document.documentElement.dataset.theme = initial;
   }, []);
@@ -21,10 +18,6 @@ export default function ThemeToggle() {
     setTheme(next);
     document.documentElement.dataset.theme = next;
     localStorage.setItem("theme", next);
-  }
-
-  if (!mounted) {
-    return <div className="h-8 w-8" aria-hidden />;
   }
 
   return (
